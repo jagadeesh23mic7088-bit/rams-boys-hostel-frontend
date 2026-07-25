@@ -1,606 +1,722 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import {
-    getBranches,
-    getRoomTypes,
-    getRooms
-} from "../services/api";
+import { registerStudent } from "../services/api";
 
-import "./Rooms.css";
+import "./Register.css";
 
-function Rooms() {
+function Register() {
 
     const navigate = useNavigate();
 
-    const [branches, setBranches] = useState([]);
-    const [roomTypes, setRoomTypes] = useState([]);
-    const [rooms, setRooms] = useState([]);
-
-    const [selectedBranch, setSelectedBranch] = useState("all");
-    const [selectedRoomType, setSelectedRoomType] = useState("all");
-
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-
-
     // =====================================================
-    // LOAD DATA
+    // FORM DATA
     // =====================================================
 
-    useEffect(() => {
-
-        const loadData = async () => {
-
-            try {
-
-                setLoading(true);
-                setError("");
-
-                const [
-                    branchesResponse,
-                    roomTypesResponse,
-                    roomsResponse
-                ] = await Promise.all([
-                    getBranches(),
-                    getRoomTypes(),
-                    getRooms()
-                ]);
-
-
-                // BRANCHES
-
-                setBranches(
-                    branchesResponse?.branches || []
-                );
-
-
-                // ROOM TYPES
-
-                setRoomTypes(
-                    roomTypesResponse?.roomTypes || []
-                );
-
-
-                // ROOMS
-
-                setRooms(
-                    roomsResponse?.rooms || []
-                );
-
-
-            } catch (error) {
-
-                console.error(
-                    "Room Loading Error:",
-                    error
-                );
-
-                setError(
-                    error?.message ||
-                    "Unable to load available rooms."
-                );
-
-            } finally {
-
-                setLoading(false);
-
-            }
-
-        };
-
-
-        loadData();
-
-    }, []);
-
-
-    // =====================================================
-    // FILTER ROOMS
-    // =====================================================
-
-    const filteredRooms = rooms.filter((room) => {
-
-        const branchId =
-            room.branch?._id ||
-            room.branch;
-
-        const roomTypeId =
-            room.roomType?._id ||
-            room.roomType;
-
-        const branchMatch =
-            selectedBranch === "all" ||
-            branchId === selectedBranch;
-
-        const roomTypeMatch =
-            selectedRoomType === "all" ||
-            roomTypeId === selectedRoomType;
-
-        return (
-            branchMatch &&
-            roomTypeMatch
-        );
-
+    const [formData, setFormData] = useState({
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: ""
     });
 
 
     // =====================================================
-    // BOOK ROOM
+    // STATE
     // =====================================================
 
-    const handleBookRoom = (room) => {
+    const [showPassword, setShowPassword] = useState(false);
 
-        const selectedRoom = {
-            ...room,
+    const [showConfirmPassword, setShowConfirmPassword] =
+        useState(false);
 
-            roomNumber:
-                room.roomNumber,
+    const [loading, setLoading] = useState(false);
 
-            branch:
-                room.branch,
+    const [error, setError] = useState("");
 
-            roomType:
-                room.roomType,
-
-            totalBeds:
-                room.totalBeds,
-
-            availableBeds:
-                room.availableBeds
-        };
+    const [success, setSuccess] = useState("");
 
 
-        navigate(
-            "/booking",
-            {
-                state: {
-                    room: selectedRoom
-                }
-            }
-        );
+    // =====================================================
+    // HANDLE INPUT CHANGE
+    // =====================================================
+
+    const handleChange = (e) => {
+
+        const { name, value } = e.target;
+
+        setFormData((previousData) => ({
+
+            ...previousData,
+
+            [name]: value
+
+        }));
+
+        // Clear previous messages
+        setError("");
+
+        setSuccess("");
 
     };
 
 
     // =====================================================
-    // LOADING
+    // HANDLE REGISTRATION
     // =====================================================
 
-    if (loading) {
+    const handleRegister = async (e) => {
 
-        return (
+        e.preventDefault();
 
-            <div className="rooms-page">
+        // Clear previous messages
+        setError("");
 
-                <div className="rooms-loading">
+        setSuccess("");
 
-                    <div className="loading-icon">
-                        🏠
-                    </div>
 
-                    <div className="loading-spinner"></div>
+        // =================================================
+        // VALIDATE REQUIRED FIELDS
+        // =================================================
 
-                    <h2>
-                        Finding Available Rooms
-                    </h2>
+        if (
+            !formData.name.trim() ||
+            !formData.email.trim() ||
+            !formData.password ||
+            !formData.confirmPassword
+        ) {
 
-                    <p>
-                        Please wait while we load the
-                        latest hostel availability.
-                    </p>
+            setError(
+                "Please fill in all the required fields."
+            );
 
-                </div>
+            return;
 
-            </div>
+        }
 
-        );
 
-    }
+        // =================================================
+        // VALIDATE PASSWORD LENGTH
+        // =================================================
+
+        if (formData.password.length < 6) {
+
+            setError(
+                "Password must contain at least 6 characters."
+            );
+
+            return;
+
+        }
+
+
+        // =================================================
+        // VALIDATE PASSWORD MATCH
+        // =================================================
+
+        if (
+            formData.password !==
+            formData.confirmPassword
+        ) {
+
+            setError(
+                "Passwords do not match."
+            );
+
+            return;
+
+        }
+
+
+        // =================================================
+        // START LOADING
+        // =================================================
+
+        setLoading(true);
+
+
+        try {
+
+            // =================================================
+            // CALL REGISTER API
+            // =================================================
+
+            const response = await registerStudent({
+
+                name:
+                    formData.name.trim(),
+
+                email:
+                    formData.email.trim(),
+
+                password:
+                    formData.password
+
+            });
+
+
+            // =================================================
+            // DEBUG RESPONSE
+            // =================================================
+
+            console.log(
+                "Registration Response:",
+                response
+            );
+
+
+            // =================================================
+            // SHOW SUCCESS MESSAGE
+            // =================================================
+
+            setSuccess(
+
+                response?.message ||
+
+                "Registration successful! Redirecting to login..."
+
+            );
+
+
+            // =================================================
+            // CLEAR FORM
+            // =================================================
+
+            setFormData({
+
+                name: "",
+
+                email: "",
+
+                password: "",
+
+                confirmPassword: ""
+
+            });
+
+
+            // =================================================
+            // REDIRECT TO LOGIN
+            // =================================================
+
+            setTimeout(() => {
+
+                navigate("/login");
+
+            }, 2000);
+
+
+        } catch (error) {
+
+            // =================================================
+            // HANDLE REGISTRATION ERROR
+            // =================================================
+
+            console.error(
+                "Registration Error:",
+                error
+            );
+
+
+            setError(
+
+                error?.message ||
+
+                "Registration failed. Please try again."
+
+            );
+
+        } finally {
+
+            // =================================================
+            // STOP LOADING
+            // =================================================
+
+            setLoading(false);
+
+        }
+
+    };
 
 
     // =====================================================
-    // ERROR
-    // =====================================================
-
-    if (error) {
-
-        return (
-
-            <div className="rooms-page">
-
-                <div className="rooms-error">
-
-                    <div className="error-icon">
-                        ⚠
-                    </div>
-
-                    <h2>
-                        Unable to Load Rooms
-                    </h2>
-
-                    <p>
-                        {error}
-                    </p>
-
-                    <button
-                        className="retry-button"
-                        onClick={() =>
-                            window.location.reload()
-                        }
-                    >
-                        ↻ Try Again
-                    </button>
-
-                </div>
-
-            </div>
-
-        );
-
-    }
-
-
-    // =====================================================
-    // MAIN PAGE
+    // PAGE UI
     // =====================================================
 
     return (
 
-        <div className="rooms-page">
+        <div className="register-page">
 
 
             {/* =================================================
-                HEADER
+                LEFT BRAND PANEL
             ================================================= */}
 
-            <header className="rooms-header">
+            <div className="register-brand-panel">
 
-                <div className="rooms-header-inner">
+                <div className="register-brand-content">
 
 
-                    {/* BRAND */}
+                    {/* BRAND LOGO */}
 
-                    <div className="rooms-brand">
+                    <div className="register-brand-logo">
+                        RB
+                    </div>
 
-                        <div className="rooms-brand-logo">
-                            RB
-                        </div>
 
-                        <div>
+                    {/* BRAND NAME */}
 
-                            <strong>
-                                RAMS BOYS
-                            </strong>
+                    <h1>
+                        RAMS BOYS HOSTEL
+                    </h1>
+
+
+                    {/* TAGLINE */}
+
+                    <p className="register-tagline">
+
+                        Your comfortable and affordable
+                        home away from home.
+
+                    </p>
+
+
+                    {/* =================================================
+                        BENEFITS
+                    ================================================= */}
+
+                    <div className="register-benefits">
+
+
+                        {/* BENEFIT 1 */}
+
+                        <div className="register-benefit">
 
                             <span>
-                                HOSTEL
+                                ✓
                             </span>
 
+                            <p>
+
+                                Comfortable and affordable
+                                student accommodation.
+
+                            </p>
+
                         </div>
 
+
+                        {/* BENEFIT 2 */}
+
+                        <div className="register-benefit">
+
+                            <span>
+                                ✓
+                            </span>
+
+                            <p>
+
+                                Free Wi-Fi available
+                                in every room.
+
+                            </p>
+
+                        </div>
+
+
+                        {/* BENEFIT 3 */}
+
+                        <div className="register-benefit">
+
+                            <span>
+                                ✓
+                            </span>
+
+                            <p>
+
+                                Delicious food and essential
+                                hostel facilities.
+
+                            </p>
+
+                        </div>
+
+
+                        {/* BENEFIT 4 */}
+
+                        <div className="register-benefit">
+
+                            <span>
+                                ✓
+                            </span>
+
+                            <p>
+
+                                Convenient branches near
+                                VIT-AP University.
+
+                            </p>
+
+                        </div>
+
+
                     </div>
-
-
-                    {/* DASHBOARD BUTTON */}
-
-                    <button
-                        className="dashboard-button"
-                        onClick={() =>
-                            navigate(
-                                "/student/dashboard"
-                            )
-                        }
-                    >
-
-                        <span className="button-icon">
-                            ←
-                        </span>
-
-                        Student Dashboard
-
-                    </button>
 
                 </div>
 
-
-                {/* HERO */}
-
-                <div className="rooms-hero">
-
-                    <div className="hero-content">
-
-                        <span className="hero-eyebrow">
-                            STUDENT ACCOMMODATION
-                        </span>
-
-                        <h1>
-                            Find Your Perfect Room
-                        </h1>
-
-                        <p>
-                            Explore comfortable and affordable
-                            hostel accommodation designed to
-                            make your student life easier.
-                        </p>
-
-                    </div>
-
-
-                    <div className="hero-decoration">
-
-                        <div className="hero-circle hero-circle-one">
-                        </div>
-
-                        <div className="hero-circle hero-circle-two">
-                        </div>
-
-                        <div className="hero-house">
-                            🏠
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </header>
+            </div>
 
 
             {/* =================================================
-                FILTER BAR
+                RIGHT FORM PANEL
             ================================================= */}
 
-            <section className="filter-section">
-
-                <div className="filter-card">
-
-
-                    {/* FILTER TITLE */}
-
-                    <div className="filter-heading">
-
-                        <div className="filter-heading-icon">
-                            ⚙
-                        </div>
-
-                        <div>
-
-                            <span>
-                                FIND YOUR ROOM
-                            </span>
-
-                            <h2>
-                                Filter Accommodation
-                            </h2>
-
-                        </div>
-
-                    </div>
-
-
-                    {/* FILTERS */}
-
-                    <div className="filters">
-
-
-                        {/* BRANCH */}
-
-                        <div className="filter-group">
-
-                            <label>
-                                <span className="filter-label-icon">
-                                    🏢
-                                </span>
-
-                                Hostel Branch
-                            </label>
-
-                            <select
-                                value={selectedBranch}
-                                onChange={(e) =>
-                                    setSelectedBranch(
-                                        e.target.value
-                                    )
-                                }
-                            >
-
-                                <option value="all">
-                                    All Branches
-                                </option>
-
-                                {branches.map(
-                                    (branch) => (
-
-                                        <option
-                                            key={branch._id}
-                                            value={branch._id}
-                                        >
-                                            {branch.name}
-                                        </option>
-
-                                    )
-                                )}
-
-                            </select>
-
-                        </div>
-
-
-                        {/* ROOM TYPE */}
-
-                        <div className="filter-group">
-
-                            <label>
-                                <span className="filter-label-icon">
-                                    🛏
-                                </span>
-
-                                Room Accommodation
-                            </label>
-
-                            <select
-                                value={selectedRoomType}
-                                onChange={(e) =>
-                                    setSelectedRoomType(
-                                        e.target.value
-                                    )
-                                }
-                            >
-
-                                <option value="all">
-                                    All Room Types
-                                </option>
-
-                                {roomTypes.map(
-                                    (roomType) => (
-
-                                        <option
-                                            key={roomType._id}
-                                            value={roomType._id}
-                                        >
-
-                                            {roomType.name}
-
-                                            {" - "}
-
-                                            {roomType.category}
-
-                                        </option>
-
-                                    )
-                                )}
-
-                            </select>
-
-                        </div>
-
-
-                        {/* CLEAR */}
-
-                        {(selectedBranch !== "all" ||
-                            selectedRoomType !== "all") && (
-
-                            <button
-                                className="clear-filter-button"
-                                onClick={() => {
-
-                                    setSelectedBranch(
-                                        "all"
-                                    );
-
-                                    setSelectedRoomType(
-                                        "all"
-                                    );
-
-                                }}
-                            >
-                                ✕ Clear Filters
-                            </button>
-
-                        )}
-
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            {/* =================================================
-                MAIN CONTENT
-            ================================================= */}
-
-            <main className="rooms-container">
-
-
-                {/* SECTION HEADER */}
-
-                <div className="rooms-section-header">
-
-                    <div>
-
-                        <span className="section-eyebrow">
-                            ACCOMMODATION
-                        </span>
-
-                        <h2>
-                            Available Rooms
-                        </h2>
-
-                        <p>
-                            Choose from our currently available
-                            hostel rooms and reserve your preferred
-                            accommodation.
-                        </p>
-
-                    </div>
-
-
-                    {/* ROOM COUNT */}
-
-                    <div className="room-count-card">
-
-                        <div className="room-count-icon">
-                            🛏
-                        </div>
-
-                        <div>
-
-                            <strong>
-                                {filteredRooms.length}
-                            </strong>
-
-                            <span>
-                                {filteredRooms.length === 1
-                                    ? "Room Available"
-                                    : "Rooms Available"
-                                }
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                </div>
+            <div className="register-form-panel">
 
 
                 {/* =================================================
-                    NO ROOMS
+                    REGISTRATION CARD
                 ================================================= */}
 
-                {filteredRooms.length === 0 ? (
+                <div className="register-container">
 
-                    <div className="empty-rooms">
 
-                        <div className="empty-room-icon">
-                            🏠
+                    {/* =================================================
+                        MOBILE BRAND
+                    ================================================= */}
+
+                    <div className="register-mobile-brand">
+
+                        <div className="register-mobile-logo">
+                            RB
                         </div>
 
-                        <h3>
-                            No Rooms Available
-                        </h3>
+                        <h1>
+                            RAMS BOYS HOSTEL
+                        </h1>
+
+                    </div>
+
+
+                    {/* =================================================
+                        FORM HEADER
+                    ================================================= */}
+
+                    <div className="register-header">
+
+                        <span className="register-welcome-label">
+
+                            STUDENT REGISTRATION
+
+                        </span>
+
+                        <h2>
+                            Create Your Account
+                        </h2>
 
                         <p>
-                            We couldn't find any rooms matching
-                            your selected filters.
+
+                            Register now to explore available
+                            rooms and reserve your preferred
+                            accommodation.
+
+                        </p>
+
+                    </div>
+
+
+                    {/* =================================================
+                        ERROR MESSAGE
+                    ================================================= */}
+
+                    {error && (
+
+                        <div className="register-alert register-error">
+
+                            <span>
+                                ⚠️
+                            </span>
+
+                            <p>
+                                {error}
+                            </p>
+
+                        </div>
+
+                    )}
+
+
+                    {/* =================================================
+                        SUCCESS MESSAGE
+                    ================================================= */}
+
+                    {success && (
+
+                        <div className="register-alert register-success">
+
+                            <span>
+                                ✅
+                            </span>
+
+                            <p>
+                                {success}
+                            </p>
+
+                        </div>
+
+                    )}
+
+
+                    {/* =================================================
+                        REGISTRATION FORM
+                    ================================================= */}
+
+                    <form
+                        className="register-form"
+                        onSubmit={handleRegister}
+                    >
+
+
+                        {/* =================================================
+                            FULL NAME
+                        ================================================= */}
+
+                        <div className="register-field">
+
+                            <label htmlFor="name">
+
+                                Full Name
+
+                            </label>
+
+                            <div className="register-input-wrapper">
+
+                                <span className="register-input-icon">
+                                    👤
+                                </span>
+
+                                <input
+                                    type="text"
+                                    id="name"
+                                    name="name"
+                                    placeholder="Enter your full name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    disabled={loading}
+                                    autoComplete="name"
+                                />
+
+                            </div>
+
+                        </div>
+
+
+                        {/* =================================================
+                            EMAIL ADDRESS
+                        ================================================= */}
+
+                        <div className="register-field">
+
+                            <label htmlFor="email">
+
+                                Email Address
+
+                            </label>
+
+                            <div className="register-input-wrapper">
+
+                                <span className="register-input-icon">
+                                    📧
+                                </span>
+
+                                <input
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    placeholder="Enter your email address"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    disabled={loading}
+                                    autoComplete="email"
+                                />
+
+                            </div>
+
+                        </div>
+
+
+                        {/* =================================================
+                            PASSWORD
+                        ================================================= */}
+
+                        <div className="register-field">
+
+                            <label htmlFor="password">
+
+                                Password
+
+                            </label>
+
+                            <div className="register-input-wrapper">
+
+                                <span className="register-input-icon">
+                                    🔐
+                                </span>
+
+                                <input
+                                    type={
+                                        showPassword
+                                            ? "text"
+                                            : "password"
+                                    }
+                                    id="password"
+                                    name="password"
+                                    placeholder="Create a password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    disabled={loading}
+                                    autoComplete="new-password"
+                                />
+
+                                <button
+                                    type="button"
+                                    className="register-password-toggle"
+                                    onClick={() =>
+                                        setShowPassword(
+                                            !showPassword
+                                        )
+                                    }
+                                >
+
+                                    {showPassword
+                                        ? "HIDE"
+                                        : "SHOW"
+                                    }
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* =================================================
+                            CONFIRM PASSWORD
+                        ================================================= */}
+
+                        <div className="register-field">
+
+                            <label htmlFor="confirmPassword">
+
+                                Confirm Password
+
+                            </label>
+
+                            <div className="register-input-wrapper">
+
+                                <span className="register-input-icon">
+                                    🔑
+                                </span>
+
+                                <input
+                                    type={
+                                        showConfirmPassword
+                                            ? "text"
+                                            : "password"
+                                    }
+                                    id="confirmPassword"
+                                    name="confirmPassword"
+                                    placeholder="Re-enter your password"
+                                    value={
+                                        formData.confirmPassword
+                                    }
+                                    onChange={handleChange}
+                                    disabled={loading}
+                                    autoComplete="new-password"
+                                />
+
+                                <button
+                                    type="button"
+                                    className="register-password-toggle"
+                                    onClick={() =>
+                                        setShowConfirmPassword(
+                                            !showConfirmPassword
+                                        )
+                                    }
+                                >
+
+                                    {showConfirmPassword
+                                        ? "HIDE"
+                                        : "SHOW"
+                                    }
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* =================================================
+                            SUBMIT BUTTON
+                        ================================================= */}
+
+                        <button
+                            type="submit"
+                            className="register-submit-button"
+                            disabled={loading}
+                        >
+
+                            {loading ? (
+
+                                <>
+
+                                    <span className="register-spinner">
+                                    </span>
+
+                                    Creating Account...
+
+                                </>
+
+                            ) : (
+
+                                <>
+
+                                    Create Student Account
+
+                                    <span>
+                                        →
+                                    </span>
+
+                                </>
+
+                            )}
+
+                        </button>
+
+
+                    </form>
+
+
+                    {/* =================================================
+                        LOGIN SECTION
+                    ================================================= */}
+
+                    <div className="already-account-section">
+
+                        <p>
+                            Already have an account?
                         </p>
 
                         <button
-                            className="primary-action-button"
-                            onClick={() => {
-
-                                setSelectedBranch(
-                                    "all"
-                                );
-
-                                setSelectedRoomType(
-                                    "all"
-                                );
-
-                            }}
+                            type="button"
+                            className="go-login-button"
+                            onClick={() =>
+                                navigate("/login")
+                            }
                         >
 
-                            View All Rooms
+                            Login Here
 
                             <span>
                                 →
@@ -610,396 +726,57 @@ function Rooms() {
 
                     </div>
 
-                ) : (
 
+                    {/* =================================================
+                        DIVIDER
+                    ================================================= */}
 
-                    /* =================================================
-                        ROOM GRID
-                    ================================================= */
-
-                    <div className="rooms-grid">
-
-                        {filteredRooms.map(
-                            (room) => {
-
-
-                                const availableBeds =
-                                    Number(
-                                        room.availableBeds || 0
-                                    );
-
-
-                                const totalBeds =
-                                    Number(
-                                        room.totalBeds || 0
-                                    );
-
-
-                                const availabilityPercentage =
-                                    totalBeds > 0
-                                        ? (
-                                            availableBeds /
-                                            totalBeds
-                                        ) * 100
-                                        : 0;
-
-
-                                const isAvailable =
-                                    availableBeds > 0;
-
-
-                                const isLowAvailability =
-                                    availableBeds > 0 &&
-                                    availableBeds <= 1;
-
-
-                                return (
-
-                                    <article
-                                        className="room-card"
-                                        key={room._id}
-                                    >
-
-
-                                        {/* CARD TOP */}
-
-                                        <div className="room-card-top">
-
-
-                                            <div className="room-number">
-
-                                                <span>
-                                                    ROOM
-                                                </span>
-
-                                                <strong>
-                                                    {room.roomNumber}
-                                                </strong>
-
-                                            </div>
-
-
-                                            <span
-                                                className={
-                                                    isAvailable
-                                                        ? "room-status available"
-                                                        : "room-status full"
-                                                }
-                                            >
-
-                                                <span className="status-dot">
-                                                </span>
-
-                                                {isAvailable
-                                                    ? "Available"
-                                                    : "Fully Occupied"
-                                                }
-
-                                            </span>
-
-                                        </div>
-
-
-                                        {/* ROOM CATEGORY */}
-
-                                        <div className="room-category">
-
-                                            <div className="category-icon">
-                                                {room.roomType?.category
-                                                    ?.toLowerCase()
-                                                    .includes("ac")
-                                                    ? "❄"
-                                                    : "☀"
-                                                }
-                                            </div>
-
-                                            <div>
-
-                                                <span>
-                                                    {room.roomType?.category ||
-                                                        "STANDARD"
-                                                    }
-                                                </span>
-
-                                                <strong>
-                                                    {room.roomType?.name ||
-                                                        "Room"
-                                                    }
-                                                </strong>
-
-                                            </div>
-
-                                        </div>
-
-
-                                        {/* DETAILS */}
-
-                                        <div className="room-details-grid">
-
-
-                                            <div className="room-detail-item">
-
-                                                <span>
-                                                    🏢 Branch
-                                                </span>
-
-                                                <strong>
-                                                    {room.branch?.name ||
-                                                        "Not Available"
-                                                    }
-                                                </strong>
-
-                                            </div>
-
-
-                                            <div className="room-detail-item">
-
-                                                <span>
-                                                    🛏 Room Type
-                                                </span>
-
-                                                <strong>
-                                                    {room.roomType?.name ||
-                                                        "Not Available"
-                                                    }
-                                                </strong>
-
-                                            </div>
-
-
-                                            <div className="room-detail-item">
-
-                                                <span>
-                                                    👥 Total Beds
-                                                </span>
-
-                                                <strong>
-                                                    {totalBeds}
-                                                </strong>
-
-                                            </div>
-
-
-                                            <div className="room-detail-item">
-
-                                                <span>
-                                                    ✓ Available
-                                                </span>
-
-                                                <strong className="available-beds">
-                                                    {availableBeds}
-                                                </strong>
-
-                                            </div>
-
-                                        </div>
-
-
-                                        {/* DIVIDER */}
-
-                                        <div className="room-divider">
-                                        </div>
-
-
-                                        {/* RENT */}
-
-                                        <div className="rent-section">
-
-                                            <div>
-
-                                                <span>
-                                                    MONTHLY RENT
-                                                </span>
-
-                                                <strong>
-
-                                                    ₹
-                                                    {Number(
-                                                        room.roomType?.monthlyRent ||
-                                                        0
-                                                    ).toLocaleString(
-                                                        "en-IN"
-                                                    )}
-
-                                                </strong>
-
-                                            </div>
-
-                                            <span className="rent-period">
-                                                / month
-                                            </span>
-
-                                        </div>
-
-
-                                        {/* AVAILABILITY */}
-
-                                        <div className="availability-section">
-
-                                            <div className="availability-header">
-
-                                                <span>
-                                                    Bed Availability
-                                                </span>
-
-                                                <strong>
-                                                    {availableBeds}
-                                                    {" "}
-                                                    of
-                                                    {" "}
-                                                    {totalBeds}
-                                                </strong>
-
-                                            </div>
-
-
-                                            <div className="availability-bar">
-
-                                                <div
-                                                    className={
-                                                        isLowAvailability
-                                                            ? "availability-fill low"
-                                                            : "availability-fill"
-                                                    }
-
-                                                    style={{
-                                                        width:
-                                                            `${availabilityPercentage}%`
-                                                    }}
-
-                                                >
-                                                </div>
-
-                                            </div>
-
-
-                                            {isLowAvailability && (
-
-                                                <small className="limited-text">
-                                                    Only {availableBeds}
-                                                    {" "}
-                                                    bed remaining
-                                                </small>
-
-                                            )}
-
-                                        </div>
-
-
-                                        {/* BOOK BUTTON */}
-
-                                        <button
-                                            className="book-room-button"
-                                            disabled={
-                                                !isAvailable
-                                            }
-                                            onClick={() =>
-                                                handleBookRoom(
-                                                    room
-                                                )
-                                            }
-                                        >
-
-                                            <span className="book-icon">
-                                                🛏
-                                            </span>
-
-                                            {isAvailable
-                                                ? "Reserve This Room"
-                                                : "Currently Full"
-                                            }
-
-                                            {isAvailable && (
-
-                                                <span className="book-arrow">
-                                                    →
-                                                </span>
-
-                                            )}
-
-                                        </button>
-
-                                    </article>
-
-                                );
-
-                            }
-                        )}
-
-                    </div>
-
-                )}
-
-            </main>
-
-
-            {/* =================================================
-                INFORMATION BANNER
-            ================================================= */}
-
-            <section className="rooms-info-section">
-
-                <div className="rooms-info-card">
-
-                    <div className="info-card-icon">
-                        🔐
-                    </div>
-
-                    <div>
-
-                        <strong>
-                            Safe & Comfortable Accommodation
-                        </strong>
-
-                        <p>
-                            Room availability is updated based on
-                            current hostel management records.
-                            Choose your preferred room and continue
-                            to secure your accommodation.
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            {/* =================================================
-                FOOTER
-            ================================================= */}
-
-            <footer className="rooms-footer">
-
-                <div className="footer-brand">
-
-                    <div className="footer-logo">
-                        RB
-                    </div>
-
-                    <div>
-
-                        <strong>
-                            RAMS BOYS HOSTEL
-                        </strong>
+                    <div className="register-divider">
 
                         <span>
-                            Student Accommodation Portal
+                            OR
                         </span>
 
                     </div>
 
+
+                    {/* =================================================
+                        HOME BUTTON
+                    ================================================= */}
+
+                    <button
+                        type="button"
+                        className="register-home-button"
+                        onClick={() =>
+                            navigate("/")
+                        }
+                    >
+
+                        ← Back to Home
+
+                    </button>
+
+
+                    {/* =================================================
+                        FOOTER
+                    ================================================= */}
+
+                    <div className="register-footer">
+
+                        <span>
+                            🔐
+                        </span>
+
+                        <p>
+                            Your information is securely protected.
+                        </p>
+
+                    </div>
+
+
                 </div>
 
-
-                <p>
-                    © {new Date().getFullYear()}
-                    {" "}
-                    RAMS BOYS HOSTEL.
-                    All rights reserved.
-                </p>
-
-            </footer>
+            </div>
 
         </div>
 
@@ -1007,4 +784,4 @@ function Rooms() {
 
 }
 
-export default Rooms;
+export default Register;
