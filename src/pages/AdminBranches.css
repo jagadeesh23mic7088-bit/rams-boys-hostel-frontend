@@ -1,0 +1,771 @@
+/* ============================================
+   RAMS BOYS HOSTEL
+   ADMIN BRANCH MANAGEMENT
+   ============================================ */
+
+.admin-branches-page {
+    min-height: 100vh;
+    background: #f5f7fb;
+    color: #172033;
+}
+
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.branches-header {
+    min-height: 88px;
+    padding: 20px 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    background: #ffffff;
+
+    border-bottom: 1px solid #e5e9f0;
+
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+
+    gap: 30px;
+}
+
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+
+.back-button {
+    width: 44px;
+    height: 44px;
+
+    border-radius: 12px;
+
+    border: 1px solid #dfe4ec;
+
+    background: #ffffff;
+
+    color: #1d2939;
+
+    font-size: 22px;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+
+.back-button:hover {
+    background: #f3f5f8;
+    transform: translateX(-2px);
+}
+
+
+.header-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+
+    letter-spacing: 1.6px;
+
+    color: #667085;
+
+    margin-bottom: 4px;
+}
+
+
+.branches-header h1 {
+    margin: 0;
+
+    font-size: 24px;
+
+    font-weight: 700;
+
+    color: #101828;
+}
+
+
+.branches-header p {
+    margin: 4px 0 0;
+
+    font-size: 13px;
+
+    color: #667085;
+}
+
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+
+.website-button,
+.dashboard-button {
+    height: 42px;
+
+    padding: 0 18px;
+
+    border-radius: 9px;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+
+.website-button {
+    border: 1px solid #d0d5dd;
+
+    background: #ffffff;
+
+    color: #344054;
+}
+
+
+.website-button:hover {
+    background: #f9fafb;
+}
+
+
+.dashboard-button {
+    border: 1px solid #172033;
+
+    background: #172033;
+
+    color: #ffffff;
+}
+
+
+.dashboard-button:hover {
+    background: #273449;
+}
+
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
+
+.branches-content {
+    max-width: 1440px;
+
+    margin: 0 auto;
+
+    padding: 42px 48px 70px;
+}
+
+
+/* ============================================
+   INTRODUCTION
+   ============================================ */
+
+.page-introduction {
+    display: flex;
+
+    align-items: flex-end;
+
+    justify-content: space-between;
+
+    gap: 30px;
+
+    margin-bottom: 42px;
+}
+
+
+.section-label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    letter-spacing: 1.5px;
+
+    color: #667085;
+}
+
+
+.page-introduction h2,
+.section-heading h2 {
+    margin: 0;
+
+    color: #101828;
+
+    font-size: 28px;
+
+    font-weight: 700;
+}
+
+
+.page-introduction p {
+    margin: 9px 0 0;
+
+    color: #667085;
+
+    font-size: 14px;
+}
+
+
+.branch-count-card {
+    min-width: 190px;
+
+    padding: 20px 24px;
+
+    background: #ffffff;
+
+    border: 1px solid #e4e7ec;
+
+    border-radius: 14px;
+
+    box-shadow: 0 4px 15px rgba(16, 24, 40, 0.04);
+}
+
+
+.count-label {
+    display: block;
+
+    font-size: 10px;
+
+    letter-spacing: 1.2px;
+
+    font-weight: 700;
+
+    color: #667085;
+}
+
+
+.branch-count-card strong {
+    display: block;
+
+    margin: 4px 0;
+
+    font-size: 30px;
+
+    color: #101828;
+}
+
+
+.branch-count-card span:last-child {
+    font-size: 12px;
+
+    color: #667085;
+}
+
+
+/* ============================================
+   SECTION HEADING
+   ============================================ */
+
+.section-heading {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-end;
+
+    margin-bottom: 20px;
+}
+
+
+.results-count {
+    color: #667085;
+
+    font-size: 13px;
+
+    font-weight: 500;
+}
+
+
+/* ============================================
+   BRANCH GRID
+   ============================================ */
+
+.branches-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(330px, 1fr)
+        );
+
+    gap: 22px;
+}
+
+
+/* ============================================
+   BRANCH CARD
+   ============================================ */
+
+.branch-card {
+    background: #ffffff;
+
+    border: 1px solid #e4e7ec;
+
+    border-radius: 16px;
+
+    overflow: hidden;
+
+    box-shadow:
+        0 5px 18px
+        rgba(16, 24, 40, 0.045);
+
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
+}
+
+
+.branch-card:hover {
+    transform: translateY(-4px);
+
+    border-color: #cbd5e1;
+
+    box-shadow:
+        0 14px 30px
+        rgba(16, 24, 40, 0.09);
+}
+
+
+/* ============================================
+   CARD HEADER
+   ============================================ */
+
+.branch-card-header {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 22px 22px 10px;
+}
+
+
+.branch-icon {
+    width: 48px;
+    height: 48px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 12px;
+
+    background: #f2f4f7;
+
+    font-size: 22px;
+}
+
+
+.active-badge {
+    padding: 6px 10px;
+
+    border-radius: 20px;
+
+    background: #ecfdf3;
+
+    color: #027a48;
+
+    font-size: 11px;
+
+    font-weight: 700;
+}
+
+
+/* ============================================
+   CARD BODY
+   ============================================ */
+
+.branch-card-body {
+    padding: 10px 22px 24px;
+}
+
+
+.branch-card-body h3 {
+    margin: 0 0 16px;
+
+    font-size: 21px;
+
+    font-weight: 700;
+
+    color: #101828;
+}
+
+
+.branch-location,
+.branch-distance {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 9px;
+
+    margin-bottom: 11px;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
+    color: #475467;
+}
+
+
+.branch-location span:first-child,
+.branch-distance span:first-child {
+    flex-shrink: 0;
+}
+
+
+/* ============================================
+   FACILITIES
+   ============================================ */
+
+.facilities-preview {
+    margin-top: 22px;
+
+    padding-top: 18px;
+
+    border-top: 1px solid #eaecf0;
+}
+
+
+.facility-title {
+    display: block;
+
+    margin-bottom: 10px;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.8px;
+
+    color: #667085;
+}
+
+
+.facility-list {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 7px;
+}
+
+
+.facility-tag {
+    padding: 6px 9px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 7px;
+
+    font-size: 11px;
+
+    color: #475467;
+}
+
+
+.more-facilities {
+    display: block;
+
+    margin-top: 9px;
+
+    font-size: 11px;
+
+    color: #667085;
+}
+
+
+/* ============================================
+   CARD FOOTER
+   ============================================ */
+
+.branch-card-footer {
+    padding: 15px 22px;
+
+    border-top: 1px solid #eaecf0;
+
+    background: #fcfcfd;
+}
+
+
+.view-branch-button {
+    width: 100%;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 11px 14px;
+
+    border-radius: 9px;
+
+    border: 1px solid #d0d5dd;
+
+    background: #ffffff;
+
+    color: #344054;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+
+.view-branch-button:hover {
+    background: #f2f4f7;
+
+    border-color: #98a2b3;
+}
+
+
+.view-branch-button span {
+    font-size: 18px;
+
+    transition: transform 0.2s ease;
+}
+
+
+.view-branch-button:hover span {
+    transform: translateX(4px);
+}
+
+
+/* ============================================
+   STATE CARD
+   ============================================ */
+
+.state-card {
+    min-height: 280px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    text-align: center;
+
+    padding: 40px;
+
+    background: #ffffff;
+
+    border: 1px solid #e4e7ec;
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 5px 18px
+        rgba(16, 24, 40, 0.04);
+}
+
+
+.state-icon {
+    width: 52px;
+    height: 52px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #f2f4f7;
+
+    font-size: 22px;
+
+    margin-bottom: 16px;
+}
+
+
+.state-card h3 {
+    margin: 0 0 8px;
+
+    color: #101828;
+
+    font-size: 18px;
+}
+
+
+.state-card p {
+    max-width: 450px;
+
+    margin: 0;
+
+    color: #667085;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+}
+
+
+/* ============================================
+   ERROR
+   ============================================ */
+
+.error-state .state-icon {
+    background: #fef3f2;
+
+    color: #b42318;
+}
+
+
+.retry-button {
+    margin-top: 20px;
+
+    padding: 10px 20px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #172033;
+
+    color: #ffffff;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+/* ============================================
+   LOADING
+   ============================================ */
+
+.loading-spinner {
+    width: 34px;
+    height: 34px;
+
+    margin-bottom: 18px;
+
+    border: 3px solid #eaecf0;
+
+    border-top-color: #172033;
+
+    border-radius: 50%;
+
+    animation:
+        spin 0.8s linear infinite;
+}
+
+
+@keyframes spin {
+
+    to {
+        transform: rotate(360deg);
+    }
+
+}
+
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 900px) {
+
+    .branches-header {
+        padding: 18px 24px;
+
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+
+    .header-actions {
+        width: 100%;
+    }
+
+
+    .website-button,
+    .dashboard-button {
+        flex: 1;
+    }
+
+
+    .branches-content {
+        padding: 30px 24px 50px;
+    }
+
+
+    .page-introduction {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+
+    .branch-count-card {
+        width: 100%;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .header-left {
+        align-items: flex-start;
+    }
+
+
+    .branches-header h1 {
+        font-size: 20px;
+    }
+
+
+    .branches-content {
+        padding: 25px 16px 40px;
+    }
+
+
+    .branches-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .header-actions {
+        flex-direction: column;
+    }
+
+
+    .website-button,
+    .dashboard-button {
+        width: 100%;
+    }
+
+}

@@ -1,334 +1,339 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
-import {
-    getBranches,
-    getRoomTypes,
-    createBooking
-} from "../services/api";
+import { createBooking, getBranches, getRoomTypes } from "../services/api";
+import "./Booking.css";
 
 function Booking() {
-
-    const navigate = useNavigate();
     const location = useLocation();
+    const navigate = useNavigate();
 
-    // ========================================
-    // GET ROOM SELECTED FROM ROOMS PAGE
-    // ========================================
+    // =====================================================
+    // SELECTED ROOM FROM ROOMS PAGE
+    // =====================================================
 
-    const selectedRoomFromRoomsPage =
-        location.state?.room || null;
+    const selectedRoom = location.state?.room;
 
-
-    // ========================================
-    // STATE
-    // ========================================
+    // =====================================================
+    // DATA
+    // =====================================================
 
     const [branches, setBranches] = useState([]);
     const [roomTypes, setRoomTypes] = useState([]);
 
-    const [selectedBranch, setSelectedBranch] = useState("");
-    const [selectedRoomType, setSelectedRoomType] = useState("");
+    // =====================================================
+    // FORM VALUES
+    // =====================================================
 
-    const [numberOfBeds, setNumberOfBeds] = useState(1);
+    const [selectedBranch, setSelectedBranch] = useState(
+        selectedRoom?.branch?._id ||
+        selectedRoom?.branch ||
+        ""
+    );
+
+    const [selectedRoomType, setSelectedRoomType] = useState(
+        selectedRoom?.roomType?._id ||
+        selectedRoom?.roomType ||
+        ""
+    );
+
+    const [beds, setBeds] = useState(1);
     const [moveInDate, setMoveInDate] = useState("");
-    const [note, setNote] = useState("");
+    const [additionalInfo, setAdditionalInfo] = useState("");
 
-    const [loadingData, setLoadingData] = useState(true);
+    // =====================================================
+    // UI STATE
+    // =====================================================
+
     const [loading, setLoading] = useState(false);
-
+    const [pageLoading, setPageLoading] = useState(true);
+    const [message, setMessage] = useState("");
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
 
+    // =====================================================
+    // PAYMENT
+    // =====================================================
 
-    // ========================================
-    // LOAD BRANCHES AND ROOM TYPES
-    // ========================================
+    const ADVANCE_PAYMENT = 1500;
+
+    // =====================================================
+    // LOAD BRANCHES + ROOM TYPES
+    // =====================================================
 
     useEffect(() => {
-
         const loadData = async () => {
-
             try {
-
-                setLoadingData(true);
-                setError("");
+                setPageLoading(true);
 
                 const [
-                    branchResponse,
-                    roomTypeResponse
+                    branchesResponse,
+                    roomTypesResponse
                 ] = await Promise.all([
                     getBranches(),
                     getRoomTypes()
                 ]);
 
-
                 console.log(
-                    "Branches:",
-                    branchResponse
+                    "Booking Branches:",
+                    branchesResponse
                 );
 
                 console.log(
-                    "Room Types:",
-                    roomTypeResponse
+                    "Booking Room Types:",
+                    roomTypesResponse
                 );
 
+                // =================================================
+                // EXTRACT BRANCHES
+                // =================================================
 
-                // ========================================
-                // BRANCH DATA
-                // ========================================
-
-                let loadedBranches = [];
+                let branchList = [];
 
                 if (
                     Array.isArray(
-                        branchResponse?.branches
+                        branchesResponse?.branches
                     )
                 ) {
-
-                    loadedBranches =
-                        branchResponse.branches;
-
+                    branchList =
+                        branchesResponse.branches;
                 } else if (
                     Array.isArray(
-                        branchResponse?.data
+                        branchesResponse?.data
                     )
                 ) {
-
-                    loadedBranches =
-                        branchResponse.data;
-
+                    branchList =
+                        branchesResponse.data;
                 } else if (
                     Array.isArray(
-                        branchResponse
+                        branchesResponse
                     )
                 ) {
-
-                    loadedBranches =
-                        branchResponse;
-
+                    branchList =
+                        branchesResponse;
                 }
 
+                // =================================================
+                // EXTRACT ROOM TYPES
+                // =================================================
 
-                setBranches(
-                    loadedBranches
-                );
-
-
-                // ========================================
-                // ROOM TYPE DATA
-                // ========================================
-
-                let loadedRoomTypes = [];
+                let roomTypeList = [];
 
                 if (
                     Array.isArray(
-                        roomTypeResponse?.roomTypes
+                        roomTypesResponse?.roomTypes
                     )
                 ) {
-
-                    loadedRoomTypes =
-                        roomTypeResponse.roomTypes;
-
+                    roomTypeList =
+                        roomTypesResponse.roomTypes;
                 } else if (
                     Array.isArray(
-                        roomTypeResponse?.data
+                        roomTypesResponse?.data
                     )
                 ) {
-
-                    loadedRoomTypes =
-                        roomTypeResponse.data;
-
+                    roomTypeList =
+                        roomTypesResponse.data;
                 } else if (
                     Array.isArray(
-                        roomTypeResponse
+                        roomTypesResponse
                     )
                 ) {
-
-                    loadedRoomTypes =
-                        roomTypeResponse;
-
+                    roomTypeList =
+                        roomTypesResponse;
                 }
 
+                setBranches(branchList);
+                setRoomTypes(roomTypeList);
 
-                setRoomTypes(
-                    loadedRoomTypes
-                );
-
-
-                // ========================================
-                // AUTO SELECT ROOM FROM ROOMS PAGE
-                // ========================================
-
-                if (selectedRoomFromRoomsPage) {
-
-                    console.log(
-                        "Selected room from Rooms page:",
-                        selectedRoomFromRoomsPage
-                    );
-
-
-                    // ------------------------------------
-                    // GET BRANCH ID
-                    // ------------------------------------
-
-                    const branchId =
-                        typeof selectedRoomFromRoomsPage.branch === "object"
-                            ? selectedRoomFromRoomsPage.branch?._id
-                            : selectedRoomFromRoomsPage.branch;
-
-
-                    // ------------------------------------
-                    // GET ROOM TYPE ID
-                    // ------------------------------------
-
-                    const roomTypeId =
-                        typeof selectedRoomFromRoomsPage.roomType === "object"
-                            ? selectedRoomFromRoomsPage.roomType?._id
-                            : selectedRoomFromRoomsPage.roomType;
-
-
-                    console.log(
-                        "Selected Branch ID:",
-                        branchId
-                    );
-
-                    console.log(
-                        "Selected Room Type ID:",
-                        roomTypeId
-                    );
-
-
-                    // ------------------------------------
-                    // SET SELECTED BRANCH
-                    // ------------------------------------
-
-                    if (branchId) {
-
-                        setSelectedBranch(
-                            String(branchId)
-                        );
-
-                    }
-
-
-                    // ------------------------------------
-                    // SET SELECTED ROOM TYPE
-                    // ------------------------------------
-
-                    if (roomTypeId) {
-
-                        setSelectedRoomType(
-                            String(roomTypeId)
-                        );
-
-                    }
-
-                }
-
-
-            } catch (error) {
-
+            } catch (err) {
                 console.error(
-                    "Booking data error:",
-                    error
+                    "Booking data loading error:",
+                    err
                 );
 
                 setError(
-                    error.message ||
-                    "Unable to load hostel information."
+                    "Unable to load hostel accommodation information."
                 );
 
             } finally {
-
-                setLoadingData(false);
-
+                setPageLoading(false);
             }
-
         };
 
-
         loadData();
+    }, []);
 
-    }, [selectedRoomFromRoomsPage]);
+    // =====================================================
+    // FILTER ROOM TYPES BY SELECTED BRANCH
+    // =====================================================
 
+    const filteredRoomTypes = useMemo(() => {
+        if (!selectedBranch) {
+            return [];
+        }
 
-    // ========================================
-    // FILTER ROOM TYPES BY BRANCH
-    // ========================================
+        return roomTypes.filter((roomType) => {
 
-    const filteredRoomTypes =
-        roomTypes.filter(
-            (roomType) => {
+            const roomBranchId =
+                typeof roomType.branch === "object"
+                    ? roomType.branch?._id
+                    : roomType.branch;
 
-                if (!selectedBranch) {
+            return (
+                String(roomBranchId) ===
+                String(selectedBranch)
+            );
+        });
 
-                    return false;
+    }, [
+        roomTypes,
+        selectedBranch
+    ]);
 
-                }
+    // =====================================================
+    // WHEN BRANCH CHANGES
+    // SELECT VALID ROOM TYPE
+    // =====================================================
 
+    useEffect(() => {
 
-                const branchId =
-                    typeof roomType.branch === "object"
-                        ? roomType.branch?._id
-                        : roomType.branch;
+        if (!selectedBranch) {
+            setSelectedRoomType("");
+            return;
+        }
 
+        const selectedRoomTypeStillValid =
+            filteredRoomTypes.some(
+                (roomType) =>
+                    String(roomType._id) ===
+                    String(selectedRoomType)
+            );
 
-                return (
-                    String(branchId) ===
-                    String(selectedBranch)
+        if (!selectedRoomTypeStillValid) {
+
+            if (
+                filteredRoomTypes.length > 0
+            ) {
+
+                setSelectedRoomType(
+                    filteredRoomTypes[0]._id
                 );
 
+            } else {
+
+                setSelectedRoomType("");
+
             }
-        );
+        }
 
+    }, [
+        selectedBranch,
+        filteredRoomTypes,
+        selectedRoomType
+    ]);
 
-    // ========================================
+    // =====================================================
     // SELECTED ROOM TYPE DETAILS
-    // ========================================
+    // =====================================================
 
-    const selectedRoom =
+    const selectedRoomTypeData =
         roomTypes.find(
             (roomType) =>
                 String(roomType._id) ===
                 String(selectedRoomType)
         );
 
+    // =====================================================
+    // BRANCH NAME
+    // =====================================================
 
-    // ========================================
-    // SELECTED BRANCH DETAILS
-    // ========================================
-
-    const selectedBranchDetails =
+    const branchName =
         branches.find(
             (branch) =>
                 String(branch._id) ===
                 String(selectedBranch)
-        );
+        )?.name ||
+        selectedRoom?.branch?.name ||
+        "Not Selected";
 
+    // =====================================================
+    // ROOM TYPE NAME
+    // =====================================================
 
-    // ========================================
-    // BRANCH CHANGE
-    // ========================================
+    const roomTypeName =
+        selectedRoomTypeData?.name ||
+        selectedRoom?.roomType?.name ||
+        "Room";
+
+    // =====================================================
+    // ROOM CATEGORY
+    // =====================================================
+
+    const roomCategory =
+        selectedRoomTypeData?.category ||
+        selectedRoom?.roomType?.category ||
+        "Standard";
+
+    // =====================================================
+    // MONTHLY RENT
+    // =====================================================
+
+    const monthlyRent =
+        selectedRoomTypeData?.monthlyRent ||
+        selectedRoom?.roomType?.monthlyRent ||
+        0;
+
+    // =====================================================
+    // TOTAL BEDS
+    // =====================================================
+
+    const totalBeds =
+        selectedRoom?.totalBeds ||
+        selectedRoomTypeData?.capacity ||
+        selectedRoom?.roomType?.capacity ||
+        0;
+
+    // =====================================================
+    // AVAILABLE BEDS
+    // =====================================================
+
+    const availableBeds =
+        selectedRoom?.availableBeds ??
+        totalBeds;
+
+    // =====================================================
+    // MAXIMUM BOOKABLE BEDS
+    // =====================================================
+
+    const maxBeds = Math.max(
+        1,
+        Math.min(
+            availableBeds,
+            totalBeds || availableBeds
+        )
+    );
+
+    // =====================================================
+    // HANDLE BRANCH CHANGE
+    // =====================================================
 
     const handleBranchChange = (e) => {
 
+        const newBranchId =
+            e.target.value;
+
         setSelectedBranch(
-            e.target.value
+            newBranchId
         );
 
-        setSelectedRoomType("");
-
-        setNumberOfBeds(1);
+        setBeds(1);
 
         setError("");
 
+        setMessage("");
     };
 
-
-    // ========================================
-    // ROOM TYPE CHANGE
-    // ========================================
+    // =====================================================
+    // HANDLE ROOM TYPE CHANGE
+    // =====================================================
 
     const handleRoomTypeChange = (e) => {
 
@@ -336,53 +341,27 @@ function Booking() {
             e.target.value
         );
 
-        setNumberOfBeds(1);
+        setBeds(1);
 
         setError("");
 
+        setMessage("");
     };
 
-
-    // ========================================
+    // =====================================================
     // SUBMIT BOOKING
-    // ========================================
+    // =====================================================
 
     const handleSubmit = async (e) => {
 
         e.preventDefault();
 
         setError("");
-        setSuccess("");
+        setMessage("");
 
-
-        // ========================================
-        // CHECK LOGIN
-        // ========================================
-
-        const token =
-            localStorage.getItem("token");
-
-
-        if (!token) {
-
-            setError(
-                "Please login to continue with your room reservation."
-            );
-
-            setTimeout(() => {
-
-                navigate("/login");
-
-            }, 1500);
-
-            return;
-
-        }
-
-
-        // ========================================
-        // VALIDATION
-        // ========================================
+        // =================================================
+        // VALIDATE BRANCH
+        // =================================================
 
         if (!selectedBranch) {
 
@@ -391,9 +370,11 @@ function Booking() {
             );
 
             return;
-
         }
 
+        // =================================================
+        // VALIDATE ROOM TYPE
+        // =================================================
 
         if (!selectedRoomType) {
 
@@ -402,9 +383,24 @@ function Booking() {
             );
 
             return;
-
         }
 
+        // =================================================
+        // VALIDATE ROOM
+        // =================================================
+
+        if (!selectedRoom?._id) {
+
+            setError(
+                "Room information is missing. Please return to the rooms page and select a room again."
+            );
+
+            return;
+        }
+
+        // =================================================
+        // VALIDATE DATE
+        // =================================================
 
         if (!moveInDate) {
 
@@ -413,167 +409,146 @@ function Booking() {
             );
 
             return;
-
         }
 
+        // =================================================
+        // VALIDATE BEDS
+        // =================================================
 
         if (
-            !numberOfBeds ||
-            Number(numberOfBeds) < 1
+            beds < 1 ||
+            beds > maxBeds
         ) {
 
             setError(
-                "Please select at least one bed."
+                `Please select between 1 and ${maxBeds} bed(s).`
             );
 
             return;
-
         }
-
-
-        if (
-            selectedRoom &&
-            Number(numberOfBeds) >
-            Number(selectedRoom.capacity)
-        ) {
-
-            setError(
-                `This accommodation allows a maximum of ${selectedRoom.capacity} student(s).`
-            );
-
-            return;
-
-        }
-
 
         try {
 
             setLoading(true);
 
+            // =================================================
+            // BOOKING DATA
+            // =================================================
 
-            // ========================================
-            // CREATE BOOKING
-            // ========================================
+            const bookingData = {
 
-            const response =
-                await createBooking({
+                room:
+                    selectedRoom._id,
 
-                    branch:
-                        selectedBranch,
-
-                    roomType:
-                        selectedRoomType,
-
-                    numberOfBeds:
-                        Number(numberOfBeds),
-
-                    moveInDate:
-                        moveInDate,
-
-                    note:
-                        note.trim()
-
-                });
-
-
-            console.log(
-                "Booking Created:",
-                response
-            );
-
-
-            // ========================================
-            // GET BOOKING
-            // ========================================
-
-            const booking =
-                response?.booking;
-
-
-            if (!booking) {
-
-                throw new Error(
-                    "Booking created, but booking details were not received."
-                );
-
-            }
-
-
-            // ========================================
-            // CREATE COMPLETE BOOKING DETAILS
-            // FOR PAYMENT PAGE
-            // ========================================
-
-            const completeBooking = {
-
-                ...booking,
-
-                // Branch details
                 branch:
-                    booking.branch ||
-                    selectedBranchDetails ||
                     selectedBranch,
 
-                // Room type details
                 roomType:
-                    booking.roomType ||
-                    selectedRoom ||
                     selectedRoomType,
 
-                // Number of beds
                 numberOfBeds:
-                    booking.numberOfBeds ||
-                    Number(numberOfBeds),
+                    beds,
 
-                // Move-in date
-                moveInDate:
-                    booking.moveInDate ||
-                    moveInDate,
+                moveInDate,
 
-                // Note
-                note:
-                    booking.note ||
-                    note.trim(),
-
-                // Monthly rent
-                monthlyRent:
-                    booking.roomType?.monthlyRent ||
-                    selectedRoom?.monthlyRent ||
-                    0
+                additionalInfo
 
             };
 
-
             console.log(
-                "Complete Booking Saved for Payment:",
-                completeBooking
+                "Creating booking:",
+                bookingData
             );
 
+            // =================================================
+            // CREATE BOOKING
+            // =================================================
 
-            // ========================================
-            // SAVE PENDING BOOKING
-            // ========================================
+            const response =
+                await createBooking(
+                    bookingData
+                );
+
+            console.log(
+                "Booking created:",
+                response
+            );
+
+            // =================================================
+            // EXTRACT CREATED BOOKING
+            // =================================================
+
+            const createdBooking =
+                response?.booking ||
+                response;
+
+            const bookingId =
+                createdBooking?._id ||
+                createdBooking?.id;
+
+            // =================================================
+            // COMPLETE BOOKING OBJECT
+            // =================================================
+
+            const paymentBooking = {
+
+                ...createdBooking,
+
+                _id:
+                    bookingId,
+
+                id:
+                    bookingId,
+
+                room:
+                    selectedRoom,
+
+                branch:
+                    selectedBranch,
+
+                roomType:
+                    selectedRoomType,
+
+                numberOfBeds:
+                    beds,
+
+                moveInDate,
+
+                additionalInfo,
+
+                monthlyRent,
+
+                advancePayment:
+                    ADVANCE_PAYMENT,
+
+                status:
+                    createdBooking?.status ||
+                    "Pending Payment"
+
+            };
+
+            // =================================================
+            // SAVE FOR PAYMENT PAGE
+            // =================================================
 
             localStorage.setItem(
                 "pendingBooking",
                 JSON.stringify(
-                    completeBooking
+                    paymentBooking
                 )
             );
 
+            // =================================================
+            // SHOW SUCCESS
+            // =================================================
 
-            // ========================================
-            // SUCCESS MESSAGE
-            // ========================================
-
-            setSuccess(
-                "Reservation created successfully. Redirecting to secure payment..."
+            setMessage(
+                "Reservation details saved successfully. Redirecting to payment..."
             );
 
-
-            // ========================================
-            // PAYMENT PAGE
-            // ========================================
+            // =================================================
+            // GO TO PAYMENT
+            // =================================================
 
             setTimeout(() => {
 
@@ -581,75 +556,34 @@ function Booking() {
                     "/payment",
                     {
                         state: {
+
+                            bookingId,
+
                             booking:
-                                completeBooking
+                                paymentBooking,
+
+                            room:
+                                selectedRoom,
+
+                            amount:
+                                ADVANCE_PAYMENT
+
                         }
                     }
                 );
 
-            }, 1000);
+            }, 700);
 
-
-        } catch (error) {
+        } catch (err) {
 
             console.error(
-                "Booking error:",
-                error
+                "Booking creation error:",
+                err
             );
 
-
-            const errorMessage =
-                error?.message || "";
-
-
-            // ========================================
-            // TOKEN ERROR
-            // ========================================
-
-            if (
-                errorMessage.includes(
-                    "No token"
-                ) ||
-                errorMessage.includes(
-                    "Not authorized"
-                ) ||
-                errorMessage.includes(
-                    "Unauthorized"
-                )
-            ) {
-
-                localStorage.removeItem(
-                    "token"
-                );
-
-                localStorage.removeItem(
-                    "user"
-                );
-
-                localStorage.removeItem(
-                    "isLoggedIn"
-                );
-
-                setError(
-                    "Your login session has expired. Please login again."
-                );
-
-                setTimeout(() => {
-
-                    navigate(
-                        "/login"
-                    );
-
-                }, 1500);
-
-                return;
-
-            }
-
-
             setError(
-                errorMessage ||
-                "Unable to create your reservation. Please try again."
+                err.message ||
+                "Unable to create your reservation."
             );
 
         } finally {
@@ -657,46 +591,41 @@ function Booking() {
             setLoading(false);
 
         }
-
     };
 
+    // =====================================================
+    // NO ROOM SELECTED
+    // =====================================================
 
-    // ========================================
-    // BACK HOME
-    // ========================================
-
-    const goBackHome = () => {
-
-        navigate("/");
-
-    };
-
-
-    // ========================================
-    // LOADING
-    // ========================================
-
-    if (loadingData) {
+    if (!selectedRoom) {
 
         return (
 
             <div className="booking-page">
 
-                <div className="booking-loading-card">
+                <div className="booking-error-page">
 
-                    <div className="booking-loading-icon">
-                        🏠
+                    <div className="booking-error-icon">
+                        !
                     </div>
 
                     <h2>
-                        Preparing Your Reservation
+                        No Room Selected
                     </h2>
 
                     <p>
-                        Please wait while we load available rooms...
+                        Please select an available room
+                        before continuing with your reservation.
                     </p>
 
-                    <div className="booking-loader"></div>
+                    <button
+                        className="primary-button"
+                        onClick={() =>
+                            navigate("/rooms")
+                        }
+                    >
+                        ← Back to Available Rooms
+                    </button>
 
                 </div>
 
@@ -706,112 +635,156 @@ function Booking() {
 
     }
 
+    // =====================================================
+    // LOADING
+    // =====================================================
 
-    // ========================================
+    if (pageLoading) {
+
+        return (
+
+            <div className="booking-page">
+
+                <div className="booking-loading">
+
+                    <div className="loading-spinner">
+                    </div>
+
+                    <h2>
+                        Loading Reservation
+                    </h2>
+
+                    <p>
+                        Preparing available accommodation options...
+                    </p>
+
+                </div>
+
+            </div>
+
+        );
+
+    }
+
+    // =====================================================
     // PAGE
-    // ========================================
+    // =====================================================
 
     return (
 
         <div className="booking-page">
 
-            <div className="booking-wrapper">
+            {/* =================================================
+                HEADER
+            ================================================= */}
 
+            <header className="booking-header">
 
-                {/* ========================================
-                    HEADER
-                ======================================== */}
+                <div className="booking-header-inner">
 
-                <div className="booking-header">
+                    <div className="booking-brand">
 
-                    <div className="booking-logo">
-                        🏠
+                        <div className="booking-brand-logo">
+                            RB
+                        </div>
+
+                        <div className="booking-brand-text">
+
+                            <strong>
+                                RAMS BOYS HOSTEL
+                            </strong>
+
+                            <span>
+                                STUDENT ACCOMMODATION
+                            </span>
+
+                        </div>
+
                     </div>
+
+                    <button
+                        className="back-rooms-button"
+                        onClick={() =>
+                            navigate("/rooms")
+                        }
+                    >
+                        ← Back to Rooms
+                    </button>
+
+                </div>
+
+            </header>
+
+
+            {/* =================================================
+                HERO
+            ================================================= */}
+
+            <section className="booking-hero">
+
+                <div className="booking-hero-inner">
 
                     <div>
 
-                        <p className="booking-brand">
-                            RAMS BOYS HOSTEL
-                        </p>
+                        <span className="booking-eyebrow">
+                            RESERVATION
+                        </span>
 
                         <h1>
                             Reserve Your Room
                         </h1>
 
-                        <p className="booking-subtitle">
-                            Find your ideal accommodation and complete your reservation in a few simple steps.
+                        <p>
+                            Complete your accommodation details
+                            and continue to secure your room at
+                            RAMS Boys Hostel.
                         </p>
 
+                    </div>
+
+                    <div className="booking-hero-icon">
+                        🏠
                     </div>
 
                 </div>
 
-
-                {/* ========================================
-                    ALERTS
-                ======================================== */}
-
-                {error && (
-
-                    <div className="booking-alert booking-alert-error">
-
-                        <span>
-                            ⚠️
-                        </span>
-
-                        <p>
-                            {error}
-                        </p>
-
-                    </div>
-
-                )}
+            </section>
 
 
-                {success && (
+            {/* =================================================
+                MAIN
+            ================================================= */}
 
-                    <div className="booking-alert booking-alert-success">
+            <main className="booking-container">
 
-                        <span>
-                            ✓
-                        </span>
-
-                        <p>
-                            {success}
-                        </p>
-
-                    </div>
-
-                )}
+                <div className="booking-layout">
 
 
-                {/* ========================================
-                    MAIN CONTENT
-                ======================================== */}
+                    {/* =================================================
+                        LEFT CARD
+                    ================================================= */}
 
-                <div className="booking-grid">
+                    <div className="booking-main-card">
 
+                        <div className="booking-card-heading">
 
-                    {/* ========================================
-                        FORM CARD
-                    ======================================== */}
-
-                    <div className="booking-form-card">
-
-                        <div className="card-heading">
-
-                            <span className="card-heading-icon">
+                            <div className="heading-icon">
                                 📋
-                            </span>
+                            </div>
 
                             <div>
 
+                                <span>
+                                    RESERVATION DETAILS
+                                </span>
+
                                 <h2>
-                                    Reservation Details
+                                    Tell us about your stay
                                 </h2>
 
                                 <p>
-                                    Tell us about your accommodation requirements.
+                                    Choose your accommodation preferences
+                                    before continuing to payment.
                                 </p>
 
                             </div>
@@ -819,25 +792,83 @@ function Booking() {
                         </div>
 
 
+                        {/* =================================================
+                            SELECTED ROOM
+                        ================================================= */}
+
+                        <div className="selected-room-card">
+
+                            <div className="selected-room-icon">
+                                🛏️
+                            </div>
+
+                            <div className="selected-room-content">
+
+                                <span>
+                                    SELECTED ROOM
+                                </span>
+
+                                <h3>
+                                    Room{" "}
+                                    {selectedRoom.roomNumber}
+                                </h3>
+
+                                <p>
+                                    {branchName}
+                                    {" • "}
+                                    {roomTypeName}
+                                    {" • "}
+                                    {roomCategory}
+                                </p>
+
+                            </div>
+
+                            <div className="selected-room-rent">
+
+                                <span>
+                                    MONTHLY RENT
+                                </span>
+
+                                <strong>
+                                    ₹
+                                    {Number(
+                                        monthlyRent
+                                    ).toLocaleString(
+                                        "en-IN"
+                                    )}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* =================================================
+                            FORM
+                        ================================================= */}
+
                         <form
+                            className="booking-form"
                             onSubmit={
                                 handleSubmit
                             }
                         >
 
 
-                            {/* ========================================
+                            {/* =================================================
                                 BRANCH
-                            ======================================== */}
+                            ================================================= */}
 
-                            <div className="booking-field">
+                            <div className="form-group">
 
                                 <label>
-                                    <span>
+
+                                    <span className="form-icon">
                                         🏢
                                     </span>
 
                                     Hostel Branch
+
                                 </label>
 
                                 <select
@@ -847,13 +878,10 @@ function Booking() {
                                     onChange={
                                         handleBranchChange
                                     }
-                                    disabled={
-                                        loading
-                                    }
                                 >
 
                                     <option value="">
-                                        Select your preferred branch
+                                        Select Hostel Branch
                                     </option>
 
                                     {branches.map(
@@ -867,9 +895,9 @@ function Booking() {
                                                     branch._id
                                                 }
                                             >
-
-                                                {branch.name}
-
+                                                {
+                                                    branch.name
+                                                }
                                             </option>
 
                                         )
@@ -880,18 +908,20 @@ function Booking() {
                             </div>
 
 
-                            {/* ========================================
-                                ROOM TYPE
-                            ======================================== */}
+                            {/* =================================================
+                                ROOM ACCOMMODATION
+                            ================================================= */}
 
-                            <div className="booking-field">
+                            <div className="form-group">
 
                                 <label>
-                                    <span>
+
+                                    <span className="form-icon">
                                         🛏️
                                     </span>
 
                                     Room Accommodation
+
                                 </label>
 
                                 <select
@@ -903,18 +933,26 @@ function Booking() {
                                     }
                                     disabled={
                                         !selectedBranch ||
-                                        loading
+                                        filteredRoomTypes.length === 0
                                     }
                                 >
 
                                     <option value="">
 
                                         {!selectedBranch
-                                            ? "Select a branch first"
-                                            : "Select room accommodation"
+
+                                            ? "Select Hostel Branch First"
+
+                                            : filteredRoomTypes.length === 0
+
+                                                ? "No Accommodation Available"
+
+                                                : "Select Room Accommodation"
+
                                         }
 
                                     </option>
+
 
                                     {filteredRoomTypes.map(
                                         (roomType) => (
@@ -928,15 +966,24 @@ function Booking() {
                                                 }
                                             >
 
-                                                {roomType.name}
+                                                {
+                                                    roomType.name
+                                                }
+
                                                 {" • "}
-                                                {roomType.category}
+
+                                                {
+                                                    roomType.category
+                                                }
+
                                                 {" • ₹"}
+
                                                 {Number(
-                                                    roomType.monthlyRent || 0
+                                                    roomType.monthlyRent
                                                 ).toLocaleString(
                                                     "en-IN"
                                                 )}
+
                                                 /month
 
                                             </option>
@@ -946,94 +993,104 @@ function Booking() {
 
                                 </select>
 
+                                {!selectedBranch && (
+
+                                    <small className="form-help">
+
+                                        Select a hostel branch to
+                                        view its available room accommodations.
+
+                                    </small>
+
+                                )}
+
+                                {selectedBranch &&
+                                    filteredRoomTypes.length === 0 && (
+
+                                        <small className="form-help error-help">
+
+                                            No room accommodations are
+                                            currently available for this branch.
+
+                                        </small>
+
+                                    )}
+
                             </div>
 
 
-                            {/* ========================================
-                                SELECTED ROOM SUMMARY
-                            ======================================== */}
+                            {/* =================================================
+                                ROOM SUMMARY
+                            ================================================= */}
 
-                            {selectedRoom && (
+                            {selectedRoomTypeData && (
 
-                                <div className="selected-room-card">
+                                <div className="room-summary-box">
 
-                                    <div className="selected-room-top">
+                                    <div className="summary-top">
+
 
                                         <div>
 
-                                            <span className="room-badge">
-
-                                                {selectedRoom.category}
-
+                                            <span>
+                                                CATEGORY
                                             </span>
 
-                                            <h3>
-
-                                                {selectedRoom.name}
-                                                {" "}
-                                                Sharing
-
-                                            </h3>
+                                            <strong>
+                                                {
+                                                    roomCategory
+                                                }
+                                            </strong>
 
                                         </div>
 
-                                        <div className="room-price">
+
+                                        <div>
+
+                                            <span>
+                                                ROOM TYPE
+                                            </span>
 
                                             <strong>
+                                                {
+                                                    roomTypeName
+                                                }
+                                            </strong>
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <span>
+                                                CAPACITY
+                                            </span>
+
+                                            <strong>
+                                                {
+                                                    totalBeds
+                                                }
+                                                {" "}
+                                                student(s)
+                                            </strong>
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <span>
+                                                MONTHLY RENT
+                                            </span>
+
+                                            <strong className="rent-highlight">
 
                                                 ₹
                                                 {Number(
-                                                    selectedRoom.monthlyRent || 0
+                                                    monthlyRent
                                                 ).toLocaleString(
                                                     "en-IN"
                                                 )}
-
-                                            </strong>
-
-                                            <span>
-                                                per month
-                                            </span>
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div className="room-details">
-
-                                        <div>
-
-                                            👥
-
-                                            <span>
-                                                Capacity
-                                            </span>
-
-                                            <strong>
-
-                                                {selectedRoom.capacity}
-                                                {" "}
-                                                student(s)
-
-                                            </strong>
-
-                                        </div>
-
-
-                                        <div>
-
-                                            🛏️
-
-                                            <span>
-                                                Availability
-                                            </span>
-
-                                            <strong>
-
-                                                {selectedRoom.availableBeds ??
-                                                    selectedRoom.totalBeds ??
-                                                    "Available"
-                                                }
 
                                             </strong>
 
@@ -1046,15 +1103,15 @@ function Booking() {
                             )}
 
 
-                            {/* ========================================
-                                NUMBER OF BEDS
-                            ======================================== */}
+                            {/* =================================================
+                                BEDS
+                            ================================================= */}
 
-                            <div className="booking-field">
+                            <div className="form-group">
 
                                 <label>
 
-                                    <span>
+                                    <span className="form-icon">
                                         👥
                                     </span>
 
@@ -1062,54 +1119,85 @@ function Booking() {
 
                                 </label>
 
-                                <input
-                                    type="number"
-                                    min="1"
-                                    max={
-                                        selectedRoom
-                                            ? selectedRoom.capacity
-                                            : 1
-                                    }
-                                    value={
-                                        numberOfBeds
-                                    }
-                                    onChange={
-                                        (e) =>
-                                            setNumberOfBeds(
-                                                e.target.value
+                                <div className="bed-selector">
+
+                                    <button
+                                        type="button"
+                                        className="bed-control"
+                                        disabled={
+                                            beds <= 1
+                                        }
+                                        onClick={() =>
+                                            setBeds(
+                                                Math.max(
+                                                    1,
+                                                    beds - 1
+                                                )
                                             )
-                                    }
-                                    disabled={
-                                        !selectedRoom ||
-                                        loading
-                                    }
-                                />
+                                        }
+                                    >
+                                        −
+                                    </button>
 
-                                {selectedRoom && (
 
-                                    <small>
+                                    <div className="bed-count">
 
-                                        Maximum{" "}
-                                        {selectedRoom.capacity}
-                                        {" "}
-                                        bed(s) for this accommodation.
+                                        {beds}
 
-                                    </small>
+                                        <span>
 
-                                )}
+                                            {beds === 1
+                                                ? " Bed"
+                                                : " Beds"
+                                            }
+
+                                        </span>
+
+                                    </div>
+
+
+                                    <button
+                                        type="button"
+                                        className="bed-control"
+                                        disabled={
+                                            beds >= maxBeds
+                                        }
+                                        onClick={() =>
+                                            setBeds(
+                                                Math.min(
+                                                    maxBeds,
+                                                    beds + 1
+                                                )
+                                            )
+                                        }
+                                    >
+                                        +
+                                    </button>
+
+                                </div>
+
+                                <small className="form-help">
+
+                                    Maximum{" "}
+                                    {maxBeds}
+                                    {" "}
+                                    bed(s) available
+                                    for this accommodation.
+
+                                </small>
 
                             </div>
 
 
-                            {/* ========================================
-                                MOVE IN DATE
-                            ======================================== */}
+                            {/* =================================================
+                                MOVE IN
+                            ================================================= */}
 
-                            <div className="booking-field">
+                            <div className="form-group">
 
                                 <label>
 
-                                    <span>
+                                    <span className="form-icon">
                                         📅
                                     </span>
 
@@ -1128,28 +1216,20 @@ function Booking() {
                                                 e.target.value
                                             )
                                     }
-                                    min={
-                                        new Date()
-                                            .toISOString()
-                                            .split("T")[0]
-                                    }
-                                    disabled={
-                                        loading
-                                    }
                                 />
 
                             </div>
 
 
-                            {/* ========================================
-                                NOTE
-                            ======================================== */}
+                            {/* =================================================
+                                ADDITIONAL INFO
+                            ================================================= */}
 
-                            <div className="booking-field">
+                            <div className="form-group">
 
                                 <label>
 
-                                    <span>
+                                    <span className="form-icon">
                                         📝
                                     </span>
 
@@ -1158,111 +1238,147 @@ function Booking() {
                                 </label>
 
                                 <textarea
-                                    placeholder="Tell us anything important about your stay..."
+                                    rows="5"
                                     value={
-                                        note
+                                        additionalInfo
                                     }
                                     onChange={
                                         (e) =>
-                                            setNote(
+                                            setAdditionalInfo(
                                                 e.target.value
                                             )
                                     }
-                                    rows="4"
-                                    disabled={
-                                        loading
-                                    }
+                                    placeholder="Tell us anything important about your stay..."
                                 />
 
                             </div>
 
 
-                            {/* ========================================
-                                SUBMIT
-                            ======================================== */}
+                            {/* =================================================
+                                ERROR
+                            ================================================= */}
 
-                            <button
-                                type="submit"
-                                className="booking-submit-btn"
-                                disabled={
-                                    loading ||
-                                    !selectedBranch ||
-                                    !selectedRoomType ||
-                                    !moveInDate
-                                }
-                            >
+                            {error && (
 
-                                {loading ? (
+                                <div className="booking-alert error">
 
-                                    <>
+                                    ⚠️
 
-                                        <span className="button-spinner">
-                                        </span>
+                                    <span>
+                                        {error}
+                                    </span>
 
-                                        Creating Reservation...
+                                </div>
 
-                                    </>
-
-                                ) : (
-
-                                    <>
-
-                                        Continue to ₹1,500 Payment
-
-                                        <span>
-                                            →
-                                        </span>
-
-                                    </>
-
-                                )}
-
-                            </button>
+                            )}
 
 
-                            <button
-                                type="button"
-                                className="booking-home-btn"
-                                onClick={
-                                    goBackHome
-                                }
-                                disabled={
-                                    loading
-                                }
-                            >
+                            {/* =================================================
+                                SUCCESS
+                            ================================================= */}
 
-                                ← Return to Home
+                            {message && (
 
-                            </button>
+                                <div className="booking-alert success">
+
+                                    ✓
+
+                                    <span>
+                                        {message}
+                                    </span>
+
+                                </div>
+
+                            )}
+
+
+                            {/* =================================================
+                                BUTTONS
+                            ================================================= */}
+
+                            <div className="booking-actions">
+
+                                <button
+                                    type="button"
+                                    className="secondary-button"
+                                    onClick={() =>
+                                        navigate(
+                                            "/rooms"
+                                        )
+                                    }
+                                >
+                                    ← Return to Rooms
+                                </button>
+
+
+                                <button
+                                    type="submit"
+                                    className="payment-button"
+                                    disabled={
+                                        loading ||
+                                        !selectedBranch ||
+                                        !selectedRoomType
+                                    }
+                                >
+
+                                    {loading ? (
+
+                                        <>
+                                            <span className="button-spinner">
+                                            </span>
+
+                                            Processing...
+                                        </>
+
+                                    ) : (
+
+                                        <>
+                                            Continue to ₹1,500 Payment
+                                            <span>
+                                                →
+                                            </span>
+                                        </>
+
+                                    )}
+
+                                </button>
+
+                            </div>
 
                         </form>
 
                     </div>
 
 
-                    {/* ========================================
-                        PAYMENT INFORMATION CARD
-                    ======================================== */}
+                    {/* =================================================
+                        SIDEBAR
+                    ================================================= */}
 
-                    <div className="booking-side">
+                    <aside className="booking-sidebar">
 
 
-                        <div className="secure-payment-card">
+                        {/* SECURE RESERVATION */}
+
+                        <div className="secure-card">
 
                             <div className="secure-icon">
                                 🔐
                             </div>
 
+                            <span className="sidebar-label">
+                                SECURE RESERVATION
+                            </span>
+
                             <h2>
-                                Secure Reservation
+                                Reserve with Confidence
                             </h2>
 
                             <p>
-                                A mandatory advance payment is required to confirm your room reservation.
+                                A mandatory advance payment is
+                                required to confirm your room reservation.
                             </p>
 
-
-                            <div className="advance-amount">
+                            <div className="advance-payment">
 
                                 <span>
                                     Advance Payment
@@ -1274,57 +1390,57 @@ function Booking() {
 
                             </div>
 
+                            <div className="reservation-steps">
 
-                            <div className="payment-steps">
+                                <div className="reservation-step">
 
-                                <div className="payment-step">
-
-                                    <span>
+                                    <div className="step-number">
                                         1
-                                    </span>
+                                    </div>
 
-                                    <p>
-                                        Select your branch and accommodation
-                                    </p>
+                                    <span>
+                                        Select your branch
+                                        and accommodation
+                                    </span>
 
                                 </div>
 
+                                <div className="reservation-step">
 
-                                <div className="payment-step">
-
-                                    <span>
+                                    <div className="step-number">
                                         2
-                                    </span>
+                                    </div>
 
-                                    <p>
-                                        Submit your reservation details
-                                    </p>
+                                    <span>
+                                        Submit your reservation
+                                        details
+                                    </span>
 
                                 </div>
 
+                                <div className="reservation-step">
 
-                                <div className="payment-step">
-
-                                    <span>
+                                    <div className="step-number">
                                         3
-                                    </span>
+                                    </div>
 
-                                    <p>
-                                        Complete the ₹1,500 advance payment
-                                    </p>
+                                    <span>
+                                        Complete the ₹1,500
+                                        advance payment
+                                    </span>
 
                                 </div>
 
+                                <div className="reservation-step">
 
-                                <div className="payment-step">
+                                    <div className="step-number">
+                                        4
+                                    </div>
 
                                     <span>
-                                        4
+                                        Receive your payment
+                                        confirmation
                                     </span>
-
-                                    <p>
-                                        Receive your payment confirmation
-                                    </p>
 
                                 </div>
 
@@ -1333,22 +1449,24 @@ function Booking() {
                         </div>
 
 
-                        {/* ========================================
-                            HOSTEL INFORMATION
-                        ======================================== */}
+                        {/* WHY RAMS */}
 
-                        <div className="booking-info-card">
+                        <div className="why-rams-card">
 
-                            <h3>
-                                Why Choose RAMS?
-                            </h3>
+                            <span className="sidebar-label">
+                                WHY CHOOSE RAMS?
+                            </span>
+
+                            <h2>
+                                Everything You Need
+                            </h2>
 
 
-                            <div className="info-item">
+                            <div className="benefit-item">
 
-                                <span>
+                                <div className="benefit-icon">
                                     📶
-                                </span>
+                                </div>
 
                                 <div>
 
@@ -1357,7 +1475,8 @@ function Booking() {
                                     </strong>
 
                                     <p>
-                                        Stay connected throughout your accommodation.
+                                        Stay connected throughout
+                                        your accommodation.
                                     </p>
 
                                 </div>
@@ -1365,11 +1484,11 @@ function Booking() {
                             </div>
 
 
-                            <div className="info-item">
+                            <div className="benefit-item">
 
-                                <span>
+                                <div className="benefit-icon">
                                     🍽️
-                                </span>
+                                </div>
 
                                 <div>
 
@@ -1378,7 +1497,8 @@ function Booking() {
                                     </strong>
 
                                     <p>
-                                        Enjoy nutritious meals every day.
+                                        Enjoy nutritious meals
+                                        every day.
                                     </p>
 
                                 </div>
@@ -1386,11 +1506,11 @@ function Booking() {
                             </div>
 
 
-                            <div className="info-item">
+                            <div className="benefit-item">
 
-                                <span>
+                                <div className="benefit-icon">
                                     🧹
-                                </span>
+                                </div>
 
                                 <div>
 
@@ -1399,7 +1519,8 @@ function Booking() {
                                     </strong>
 
                                     <p>
-                                        Regular room and washroom cleaning.
+                                        Regular room and washroom
+                                        cleaning.
                                     </p>
 
                                 </div>
@@ -1407,11 +1528,11 @@ function Booking() {
                             </div>
 
 
-                            <div className="info-item">
+                            <div className="benefit-item">
 
-                                <span>
+                                <div className="benefit-icon">
                                     🔒
-                                </span>
+                                </div>
 
                                 <div>
 
@@ -1420,7 +1541,8 @@ function Booking() {
                                     </strong>
 
                                     <p>
-                                        A comfortable place to focus on your studies.
+                                        A comfortable place to
+                                        focus on your studies.
                                     </p>
 
                                 </div>
@@ -1429,16 +1551,49 @@ function Booking() {
 
                         </div>
 
+                    </aside>
+
+                </div>
+
+            </main>
+
+
+            {/* =================================================
+                FOOTER
+            ================================================= */}
+
+            <footer className="booking-footer">
+
+                <div className="footer-brand">
+
+                    <div className="footer-logo">
+                        RB
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            RAMS BOYS HOSTEL
+                        </strong>
+
+                        <span>
+                            Comfortable. Secure. Convenient.
+                        </span>
+
                     </div>
 
                 </div>
 
-            </div>
+                <p>
+                    © 2026 RAMS BOYS HOSTEL.
+                    All rights reserved.
+                </p>
+
+            </footer>
 
         </div>
 
     );
-
 }
 
 export default Booking;

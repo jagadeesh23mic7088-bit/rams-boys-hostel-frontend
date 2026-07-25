@@ -1,687 +1,1533 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import {
-    getBranches,
-    getRoomTypes,
-    getRooms
+  getBranches,
+  getRoomTypes,
+  getRooms,
 } from "../services/api";
 
-function AdminDashboard() {
+import "./AdminDashboard.css";
 
-    const navigate = useNavigate();
+const AdminDashboard = () => {
+  const navigate = useNavigate();
 
-    const [branches, setBranches] = useState([]);
-    const [roomTypes, setRoomTypes] = useState([]);
-    const [rooms, setRooms] = useState([]);
+  // =====================================================
+  // STATE
+  // =====================================================
 
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+  const [branches, setBranches] = useState([]);
+  const [roomTypes, setRoomTypes] = useState([]);
+  const [rooms, setRooms] = useState([]);
 
-    // ========================================
-    // LOAD ADMIN DATA
-    // ========================================
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-    useEffect(() => {
+  // =====================================================
+  // LOAD DASHBOARD DATA
+  // =====================================================
 
-        const loadAdminData = async () => {
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
-            try {
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-                setLoading(true);
-                setError("");
+      const [
+        branchesRes,
+        roomTypesRes,
+        roomsRes,
+      ] = await Promise.all([
+        getBranches(),
+        getRoomTypes(),
+        getRooms(),
+      ]);
 
-                // Get all branches
-                const branchResponse =
-                    await getBranches();
+      // =================================================
+      // BRANCH DATA
+      // =================================================
 
-                // Get all room types
-                const roomTypeResponse =
-                    await getRoomTypes();
+      const branchData =
+        branchesRes?.branches ||
+        branchesRes?.data?.branches ||
+        branchesRes?.data ||
+        [];
 
-                // Get all rooms
-                const roomResponse =
-                    await getRooms();
+      // =================================================
+      // ROOM TYPE DATA
+      // =================================================
 
-                console.log(
-                    "Branches:",
-                    branchResponse
-                );
+      const roomTypeData =
+        roomTypesRes?.roomTypes ||
+        roomTypesRes?.data?.roomTypes ||
+        roomTypesRes?.data ||
+        [];
 
-                console.log(
-                    "Room Types:",
-                    roomTypeResponse
-                );
+      // =================================================
+      // ROOM DATA
+      // =================================================
 
-                console.log(
-                    "Rooms:",
-                    roomResponse
-                );
+      const roomData =
+        roomsRes?.rooms ||
+        roomsRes?.data?.rooms ||
+        roomsRes?.data ||
+        [];
 
-                // Set branches
-                setBranches(
-                    branchResponse.branches || []
-                );
+      setBranches(
+        Array.isArray(branchData)
+          ? branchData
+          : []
+      );
 
-                // Set room types
-                setRoomTypes(
-                    roomTypeResponse.roomTypes || []
-                );
+      setRoomTypes(
+        Array.isArray(roomTypeData)
+          ? roomTypeData
+          : []
+      );
 
-                // Set rooms
-                setRooms(
-                    roomResponse.rooms || []
-                );
+      setRooms(
+        Array.isArray(roomData)
+          ? roomData
+          : []
+      );
 
-            } catch (error) {
+    } catch (err) {
 
-                console.error(
-                    "Admin Dashboard Error:",
-                    error
-                );
+      console.error(
+        "Error loading admin dashboard:",
+        err
+      );
 
-                setError(
-                    error.message ||
-                    "Unable to load admin dashboard"
-                );
+      setError(
+        err?.message ||
+        "Unable to load dashboard data."
+      );
 
-            } finally {
+    } finally {
 
-                setLoading(false);
+      setLoading(false);
 
-            }
+    }
+  };
 
-        };
+  // =====================================================
+  // ROOM STATISTICS
+  // =====================================================
 
-        loadAdminData();
+  const totalRooms = rooms.length;
 
-    }, []);
+  const totalBeds = rooms.reduce(
+    (total, room) => {
+      return (
+        total +
+        Number(room?.totalBeds || 0)
+      );
+    },
+    0
+  );
 
+  const availableBeds = rooms.reduce(
+    (total, room) => {
+      return (
+        total +
+        Number(room?.availableBeds || 0)
+      );
+    },
+    0
+  );
 
-    // ========================================
-    // LOGOUT
-    // ========================================
+  const occupiedBeds =
+    Math.max(
+      0,
+      totalBeds - availableBeds
+    );
 
-    const handleLogout = () => {
+  const fullyOccupiedRooms =
+    rooms.filter(
+      (room) =>
+        room?.status ===
+        "Fully Occupied"
+    ).length;
 
-        localStorage.removeItem("token");
+  const maintenanceRooms =
+    rooms.filter(
+      (room) =>
+        room?.status ===
+        "Maintenance"
+    ).length;
 
-        localStorage.removeItem("user");
+  const availableRooms =
+    rooms.filter(
+      (room) =>
+        room?.status ===
+        "Available"
+    ).length;
 
-        localStorage.removeItem("isLoggedIn");
+  // =====================================================
+  // LOGOUT
+  // =====================================================
 
-        navigate("/login");
+  const handleLogout = () => {
 
-    };
+    localStorage.removeItem(
+      "token"
+    );
 
+    localStorage.removeItem(
+      "user"
+    );
 
-    // ========================================
-    // LOADING
-    // ========================================
+    localStorage.removeItem(
+      "isLoggedIn"
+    );
 
-    if (loading) {
+    navigate(
+      "/login",
+      {
+        replace: true,
+      }
+    );
+  };
 
-        return (
+  // =====================================================
+  // VIEW WEBSITE
+  // =====================================================
 
-            <div className="admin-dashboard-page">
+  const handleViewWebsite = () => {
 
-                <div className="admin-loading">
+    window.open(
+      "/",
+      "_blank"
+    );
 
-                    <h2>
-                        Loading Admin Dashboard...
-                    </h2>
+  };
 
-                    <p>
-                        Please wait while we load the system data.
-                    </p>
+  // =====================================================
+  // STATUS CLASS
+  // =====================================================
 
-                </div>
+  const getStatusClass = (
+    status
+  ) => {
 
-            </div>
+    switch (status) {
 
-        );
+      case "Available":
+        return "status-available";
+
+      case "Partially Occupied":
+        return "status-partial";
+
+      case "Fully Occupied":
+        return "status-full";
+
+      case "Maintenance":
+        return "status-maintenance";
+
+      default:
+        return "";
 
     }
 
+  };
 
-    // ========================================
-    // ERROR
-    // ========================================
+  // =====================================================
+  // LOADING VALUE
+  // =====================================================
 
-    if (error) {
+  const displayValue = (
+    value
+  ) => {
 
-        return (
+    return loading
+      ? "—"
+      : value;
 
-            <div className="admin-dashboard-page">
+  };
 
-                <div className="admin-error">
+  // =====================================================
+  // RENDER
+  // =====================================================
 
-                    <h2>
-                        Dashboard Error
-                    </h2>
+  return (
 
-                    <p>
-                        {error}
-                    </p>
+    <div className="admin-layout">
 
-                    <button
-                        onClick={() =>
-                            window.location.reload()
-                        }
-                    >
-                        Try Again
-                    </button>
+      {/* =================================================
+          SIDEBAR
+      ================================================= */}
 
-                    <button
-                        onClick={handleLogout}
-                    >
-                        Logout
-                    </button>
+      <aside className="admin-sidebar">
 
-                </div>
+        {/* BRAND */}
 
-            </div>
+        <div className="sidebar-brand">
 
-        );
+          <div className="brand-logo">
+            RAMS
+          </div>
 
-    }
+          <div className="brand-text">
 
+            <strong>
+              RAMS
+            </strong>
 
-    // ========================================
-    // ADMIN DASHBOARD
-    // ========================================
+            <span>
+              BOYS HOSTEL
+            </span>
 
-    return (
-
-        <div className="admin-dashboard-page">
-
-            {/* ========================================
-                ADMIN NAVBAR
-            ======================================== */}
-
-            <nav className="admin-navbar">
-
-                <div className="admin-brand">
-
-                    <h2>
-                        RAMS BOYS HOSTEL
-                    </h2>
-
-                    <span>
-                        ADMIN PANEL
-                    </span>
-
-                </div>
-
-
-                <div className="admin-navbar-actions">
-
-                    <button
-                        onClick={() =>
-                            navigate("/")
-                        }
-                    >
-                        View Website
-                    </button>
-
-                    <button
-                        onClick={handleLogout}
-                    >
-                        Logout
-                    </button>
-
-                </div>
-
-            </nav>
-
-
-            {/* ========================================
-                MAIN CONTENT
-            ======================================== */}
-
-            <main className="admin-main-container">
-
-                {/* HEADER */}
-
-                <section className="admin-header">
-
-                    <div>
-
-                        <p className="admin-label">
-                            ADMINISTRATION
-                        </p>
-
-                        <h1>
-                            Dashboard Overview
-                        </h1>
-
-                        <p>
-                            Manage RAMS Boys Hostel
-                            operations from one place.
-                        </p>
-
-                    </div>
-
-                </section>
-
-
-                {/* ========================================
-                    STATISTICS
-                ======================================== */}
-
-                <section className="admin-statistics">
-
-                    <div className="admin-stat-card">
-
-                        <div className="stat-icon">
-                            🏢
-                        </div>
-
-                        <div>
-
-                            <p>
-                                Total Branches
-                            </p>
-
-                            <h2>
-                                {branches.length}
-                            </h2>
-
-                        </div>
-
-                    </div>
-
-
-                    <div className="admin-stat-card">
-
-                        <div className="stat-icon">
-                            🛏️
-                        </div>
-
-                        <div>
-
-                            <p>
-                                Total Rooms
-                            </p>
-
-                            <h2>
-                                {rooms.length}
-                            </h2>
-
-                        </div>
-
-                    </div>
-
-
-                    <div className="admin-stat-card">
-
-                        <div className="stat-icon">
-                            🏠
-                        </div>
-
-                        <div>
-
-                            <p>
-                                Room Types
-                            </p>
-
-                            <h2>
-                                {roomTypes.length}
-                            </h2>
-
-                        </div>
-
-                    </div>
-
-
-                    <div className="admin-stat-card">
-
-                        <div className="stat-icon">
-                            ✅
-                        </div>
-
-                        <div>
-
-                            <p>
-                                Available Rooms
-                            </p>
-
-                            <h2>
-                                {
-                                    rooms.filter(
-                                        room =>
-                                            room.availableBeds > 0
-                                    ).length
-                                }
-                            </h2>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-
-                {/* ========================================
-                    MANAGEMENT OPTIONS
-                ======================================== */}
-
-                <section className="admin-management">
-
-                    <h2>
-                        Management
-                    </h2>
-
-                    <p className="section-description">
-                        Manage hostel resources and
-                        availability.
-                    </p>
-
-
-                    <div className="management-grid">
-
-
-                        {/* BRANCHES */}
-
-                        <div className="management-card">
-
-                            <div className="management-icon">
-                                🏢
-                            </div>
-
-                            <h3>
-                                Branch Management
-                            </h3>
-
-                            <p>
-                                Add and manage hostel
-                                branches and locations.
-                            </p>
-
-                            <button
-                                onClick={() =>
-                                    alert(
-                                        "Branch Management will be added next."
-                                    )
-                                }
-                            >
-                                Manage Branches
-                            </button>
-
-                        </div>
-
-
-                        {/* ROOM TYPES */}
-
-                        <div className="management-card">
-
-                            <div className="management-icon">
-                                🏠
-                            </div>
-
-                            <h3>
-                                Room Type Management
-                            </h3>
-
-                            <p>
-                                Manage room categories,
-                                capacity and monthly rent.
-                            </p>
-
-                            <button
-                                onClick={() =>
-                                    alert(
-                                        "Room Type Management will be added next."
-                                    )
-                                }
-                            >
-                                Manage Room Types
-                            </button>
-
-                        </div>
-
-
-                        {/* ROOMS */}
-
-                        <div className="management-card">
-
-                            <div className="management-icon">
-                                🛏️
-                            </div>
-
-                            <h3>
-                                Room Management
-                            </h3>
-
-                            <p>
-                                Add rooms and update bed
-                                availability.
-                            </p>
-
-                            <button
-                                onClick={() =>
-                                    navigate(
-                                        "/admin/rooms"
-                                    )
-                                }
-                            >
-                                Manage Rooms
-                            </button>
-
-                        </div>
-
-
-                        {/* BOOKINGS */}
-
-                        <div className="management-card">
-
-                            <div className="management-icon">
-                                📋
-                            </div>
-
-                            <h3>
-                                Booking Management
-                            </h3>
-
-                            <p>
-                                View and manage student
-                                room bookings.
-                            </p>
-
-                            <button
-                                onClick={() =>
-                                    alert(
-                                        "Booking Management will be added next."
-                                    )
-                                }
-                            >
-                                Manage Bookings
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-
-                {/* ========================================
-                    ROOM OVERVIEW
-                ======================================== */}
-
-                <section className="admin-room-overview">
-
-                    <div className="section-heading">
-
-                        <div>
-
-                            <h2>
-                                Room Overview
-                            </h2>
-
-                            <p>
-                                Current room availability
-                                across all branches.
-                            </p>
-
-                        </div>
-
-                        <button
-                            onClick={() =>
-                                navigate(
-                                    "/admin/rooms"
-                                )
-                            }
-                        >
-                            Manage All Rooms
-                        </button>
-
-                    </div>
-
-
-                    {rooms.length === 0 ? (
-
-                        <div className="empty-admin-state">
-
-                            <h3>
-                                No rooms available
-                            </h3>
-
-                            <p>
-                                Start by adding rooms
-                                to your hostel branches.
-                            </p>
-
-                        </div>
-
-                    ) : (
-
-                        <div className="admin-room-table-wrapper">
-
-                            <table className="admin-room-table">
-
-                                <thead>
-
-                                    <tr>
-
-                                        <th>
-                                            Room
-                                        </th>
-
-                                        <th>
-                                            Branch
-                                        </th>
-
-                                        <th>
-                                            Room Type
-                                        </th>
-
-                                        <th>
-                                            Total Beds
-                                        </th>
-
-                                        <th>
-                                            Available
-                                        </th>
-
-                                        <th>
-                                            Status
-                                        </th>
-
-                                    </tr>
-
-                                </thead>
-
-
-                                <tbody>
-
-                                    {rooms
-                                        .slice(0, 10)
-                                        .map(
-                                            (room) => (
-
-                                                <tr
-                                                    key={
-                                                        room._id
-                                                    }
-                                                >
-
-                                                    <td>
-                                                        <strong>
-                                                            {
-                                                                room.roomNumber
-                                                            }
-                                                        </strong>
-                                                    </td>
-
-                                                    <td>
-                                                        {
-                                                            room.branch?.name ||
-                                                            "N/A"
-                                                        }
-                                                    </td>
-
-                                                    <td>
-                                                        {
-                                                            room.roomType?.name ||
-                                                            "N/A"
-                                                        }
-                                                    </td>
-
-                                                    <td>
-                                                        {
-                                                            room.totalBeds
-                                                        }
-                                                    </td>
-
-                                                    <td>
-                                                        {
-                                                            room.availableBeds
-                                                        }
-                                                    </td>
-
-                                                    <td>
-
-                                                        <span
-                                                            className={
-                                                                room.availableBeds >
-                                                                0
-                                                                    ? "status-available"
-                                                                    : "status-full"
-                                                            }
-                                                        >
-
-                                                            {
-                                                                room.availableBeds >
-                                                                0
-                                                                    ? "Available"
-                                                                    : "Fully Occupied"
-                                                            }
-
-                                                        </span>
-
-                                                    </td>
-
-                                                </tr>
-
-                                            )
-                                        )}
-
-                                </tbody>
-
-                            </table>
-
-                        </div>
-
-                    )}
-
-                </section>
-
-            </main>
+          </div>
 
         </div>
 
-    );
 
-}
+        {/* ADMIN PROFILE */}
+
+        <div className="admin-profile">
+
+          <div className="profile-avatar">
+            A
+          </div>
+
+          <div className="profile-details">
+
+            <strong>
+              Administrator
+            </strong>
+
+            <span>
+              Hostel Management
+            </span>
+
+          </div>
+
+        </div>
+
+
+        {/* NAVIGATION */}
+
+        <nav className="sidebar-navigation">
+
+          {/* MAIN MENU */}
+
+          <div className="nav-section-title">
+            MAIN MENU
+          </div>
+
+          <button
+            type="button"
+            className="nav-item active"
+            onClick={() =>
+              navigate(
+                "/admin/dashboard"
+              )
+            }
+          >
+
+            <span className="nav-icon">
+              ▦
+            </span>
+
+            <span>
+              Dashboard
+            </span>
+
+          </button>
+
+
+          {/* MANAGEMENT */}
+
+          <div className="nav-section-title">
+            MANAGEMENT
+          </div>
+
+
+          {/* BRANCHES */}
+
+          <button
+            type="button"
+            className="nav-item"
+            onClick={() =>
+              navigate(
+                "/admin/branches"
+              )
+            }
+          >
+
+            <span className="nav-icon">
+              ▦
+            </span>
+
+            <span>
+              Branches
+            </span>
+
+          </button>
+
+
+          {/* ROOM TYPES */}
+
+          <button
+            type="button"
+            className="nav-item"
+            onClick={() =>
+              navigate(
+                "/admin/room-types"
+              )
+            }
+          >
+
+            <span className="nav-icon">
+              ▣
+            </span>
+
+            <span>
+              Room Types
+            </span>
+
+          </button>
+
+
+          {/* ROOMS */}
+
+          <button
+            type="button"
+            className="nav-item"
+            onClick={() =>
+              navigate(
+                "/admin/rooms"
+              )
+            }
+          >
+
+            <span className="nav-icon">
+              ▤
+            </span>
+
+            <span>
+              Rooms
+            </span>
+
+          </button>
+
+
+          {/* BOOKINGS */}
+
+          <button
+            type="button"
+            className="nav-item"
+            onClick={() =>
+              navigate(
+                "/admin/bookings"
+              )
+            }
+          >
+
+            <span className="nav-icon">
+              ▤
+            </span>
+
+            <span>
+              Bookings
+            </span>
+
+          </button>
+
+
+          {/* STUDENTS */}
+
+          <button
+            type="button"
+            className="nav-item"
+            onClick={() =>
+              navigate(
+                "/admin/students"
+              )
+            }
+          >
+
+            <span className="nav-icon">
+              ♙
+            </span>
+
+            <span>
+              Students
+            </span>
+
+          </button>
+
+
+          {/* PAYMENTS */}
+
+          <button
+            type="button"
+            className="nav-item"
+            onClick={() =>
+              navigate(
+                "/admin/payments"
+              )
+            }
+          >
+
+            <span className="nav-icon">
+              ₹
+            </span>
+
+            <span>
+              Payments
+            </span>
+
+          </button>
+
+        </nav>
+
+
+        {/* SIDEBAR FOOTER */}
+
+        <div className="sidebar-footer">
+
+          <button
+            type="button"
+            className="sidebar-footer-button"
+            onClick={
+              handleViewWebsite
+            }
+          >
+
+            <span>
+              ↗
+            </span>
+
+            <span>
+              View Website
+            </span>
+
+          </button>
+
+
+          <button
+            type="button"
+            className="sidebar-footer-button logout"
+            onClick={
+              handleLogout
+            }
+          >
+
+            <span>
+              ⇥
+            </span>
+
+            <span>
+              Logout
+            </span>
+
+          </button>
+
+        </div>
+
+      </aside>
+
+
+      {/* =================================================
+          MAIN CONTENT
+      ================================================= */}
+
+      <main className="admin-main">
+
+
+        {/* =================================================
+            TOP HEADER
+        ================================================= */}
+
+        <header className="admin-topbar">
+
+          <div className="topbar-title">
+
+            <h1>
+              Dashboard Overview
+            </h1>
+
+            <p>
+              Welcome to your RAMS Boys Hostel
+              administration dashboard.
+            </p>
+
+          </div>
+
+
+          <div className="topbar-actions">
+
+            <button
+              type="button"
+              className="website-button"
+              onClick={
+                handleViewWebsite
+              }
+            >
+              ↗ View Website
+            </button>
+
+
+            <button
+              type="button"
+              className="topbar-logout"
+              onClick={
+                handleLogout
+              }
+            >
+              Logout
+            </button>
+
+          </div>
+
+        </header>
+
+
+        {/* =================================================
+            ERROR MESSAGE
+        ================================================= */}
+
+        {error && (
+
+          <div className="admin-error-message">
+
+            <strong>
+              Dashboard data could not be loaded.
+            </strong>
+
+            <span>
+              {error}
+            </span>
+
+            <button
+              type="button"
+              onClick={
+                loadDashboardData
+              }
+            >
+              Try Again
+            </button>
+
+          </div>
+
+        )}
+
+
+        {/* =================================================
+            WELCOME BANNER
+        ================================================= */}
+
+        <section className="welcome-banner">
+
+          <div className="welcome-content">
+
+            <span className="welcome-label">
+              ADMINISTRATION PORTAL
+            </span>
+
+            <h2>
+              Welcome back, Administrator
+            </h2>
+
+            <p>
+              Manage branches, rooms, students,
+              bookings and hostel operations
+              from one central platform.
+            </p>
+
+          </div>
+
+
+          <div className="welcome-decoration">
+            RAMS
+          </div>
+
+        </section>
+
+
+        {/* =================================================
+            STATISTICS
+        ================================================= */}
+
+        <section className="stats-grid">
+
+
+          {/* BRANCHES */}
+
+          <div className="stat-card">
+
+            <div className="stat-icon branch-icon">
+              ▦
+            </div>
+
+            <div className="stat-content">
+
+              <span>
+                HOSTEL LOCATIONS
+              </span>
+
+              <strong>
+                {displayValue(
+                  branches.length
+                )}
+              </strong>
+
+              <p>
+                Total Branches
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* ROOMS */}
+
+          <div className="stat-card">
+
+            <div className="stat-icon room-icon">
+              ▤
+            </div>
+
+            <div className="stat-content">
+
+              <span>
+                ACCOMMODATION
+              </span>
+
+              <strong>
+                {displayValue(
+                  totalRooms
+                )}
+              </strong>
+
+              <p>
+                Total Rooms
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* ROOM TYPES */}
+
+          <div className="stat-card">
+
+            <div className="stat-icon type-icon">
+              ▣
+            </div>
+
+            <div className="stat-content">
+
+              <span>
+                ROOM CATEGORIES
+              </span>
+
+              <strong>
+                {displayValue(
+                  roomTypes.length
+                )}
+              </strong>
+
+              <p>
+                Room Types
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* AVAILABLE ROOMS */}
+
+          <div className="stat-card">
+
+            <div className="stat-icon available-icon">
+              ✓
+            </div>
+
+            <div className="stat-content">
+
+              <span>
+                AVAILABILITY
+              </span>
+
+              <strong>
+                {displayValue(
+                  availableRooms
+                )}
+              </strong>
+
+              <p>
+                Available Rooms
+              </p>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* =================================================
+            BED SUMMARY
+        ================================================= */}
+
+        <section className="bed-summary">
+
+
+          {/* TOTAL */}
+
+          <div className="bed-summary-card">
+
+            <span>
+              Total Beds
+            </span>
+
+            <strong>
+              {displayValue(
+                totalBeds
+              )}
+            </strong>
+
+          </div>
+
+
+          {/* AVAILABLE */}
+
+          <div className="bed-summary-card">
+
+            <span>
+              Available Beds
+            </span>
+
+            <strong className="green-number">
+
+              {displayValue(
+                availableBeds
+              )}
+
+            </strong>
+
+          </div>
+
+
+          {/* OCCUPIED */}
+
+          <div className="bed-summary-card">
+
+            <span>
+              Occupied Beds
+            </span>
+
+            <strong className="orange-number">
+
+              {displayValue(
+                occupiedBeds
+              )}
+
+            </strong>
+
+          </div>
+
+
+          {/* FULLY OCCUPIED */}
+
+          <div className="bed-summary-card">
+
+            <span>
+              Fully Occupied Rooms
+            </span>
+
+            <strong className="red-number">
+
+              {displayValue(
+                fullyOccupiedRooms
+              )}
+
+            </strong>
+
+          </div>
+
+
+          {/* MAINTENANCE */}
+
+          <div className="bed-summary-card">
+
+            <span>
+              Maintenance
+            </span>
+
+            <strong className="gray-number">
+
+              {displayValue(
+                maintenanceRooms
+              )}
+
+            </strong>
+
+          </div>
+
+        </section>
+
+
+        {/* =================================================
+            HOSTEL OPERATIONS
+        ================================================= */}
+
+        <section className="management-section">
+
+          <div className="section-heading">
+
+            <div>
+
+              <span>
+                MANAGEMENT
+              </span>
+
+              <h2>
+                Hostel Operations
+              </h2>
+
+              <p>
+                Access and manage all major
+                hostel operations from here.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div className="management-grid">
+
+
+            {/* BRANCH MANAGEMENT */}
+
+            <button
+              type="button"
+              className="management-card"
+              onClick={() =>
+                navigate(
+                  "/admin/branches"
+                )
+              }
+            >
+
+              <div className="management-icon">
+                ▦
+              </div>
+
+              <div>
+
+                <h3>
+                  Branch Management
+                </h3>
+
+                <p>
+                  Add, edit and manage RAMS
+                  Boys Hostel branches and
+                  locations.
+                </p>
+
+                <span>
+                  Manage Branches →
+                </span>
+
+              </div>
+
+            </button>
+
+
+            {/* ROOM TYPE MANAGEMENT */}
+
+            <button
+              type="button"
+              className="management-card"
+              onClick={() =>
+                navigate(
+                  "/admin/room-types"
+                )
+              }
+            >
+
+              <div className="management-icon">
+                ▣
+              </div>
+
+              <div>
+
+                <h3>
+                  Room Type Management
+                </h3>
+
+                <p>
+                  Manage room categories,
+                  capacity, AC type and
+                  monthly rental prices.
+                </p>
+
+                <span>
+                  Manage Room Types →
+                </span>
+
+              </div>
+
+            </button>
+
+
+            {/* ROOM MANAGEMENT */}
+
+            <button
+              type="button"
+              className="management-card"
+              onClick={() =>
+                navigate(
+                  "/admin/rooms"
+                )
+              }
+            >
+
+              <div className="management-icon">
+                ▤
+              </div>
+
+              <div>
+
+                <h3>
+                  Room Management
+                </h3>
+
+                <p>
+                  Add rooms, update bed
+                  availability and manage
+                  accommodation inventory.
+                </p>
+
+                <span>
+                  Manage Rooms →
+                </span>
+
+              </div>
+
+            </button>
+
+
+            {/* BOOKING MANAGEMENT */}
+
+            <button
+              type="button"
+              className="management-card"
+              onClick={() =>
+                navigate(
+                  "/admin/bookings"
+                )
+              }
+            >
+
+              <div className="management-icon">
+                ▤
+              </div>
+
+              <div>
+
+                <h3>
+                  Booking Management
+                </h3>
+
+                <p>
+                  Review student bookings,
+                  approve reservations and
+                  manage booking status.
+                </p>
+
+                <span>
+                  Manage Bookings →
+                </span>
+
+              </div>
+
+            </button>
+
+
+            {/* STUDENT MANAGEMENT */}
+
+            <button
+              type="button"
+              className="management-card"
+              onClick={() =>
+                navigate(
+                  "/admin/students"
+                )
+              }
+            >
+
+              <div className="management-icon">
+                ♙
+              </div>
+
+              <div>
+
+                <h3>
+                  Student Management
+                </h3>
+
+                <p>
+                  View registered students
+                  and manage hostel accounts.
+                </p>
+
+                <span>
+                  Manage Students →
+                </span>
+
+              </div>
+
+            </button>
+
+
+            {/* PAYMENT MANAGEMENT */}
+
+            <button
+              type="button"
+              className="management-card"
+              onClick={() =>
+                navigate(
+                  "/admin/payments"
+                )
+              }
+            >
+
+              <div className="management-icon">
+                ₹
+              </div>
+
+              <div>
+
+                <h3>
+                  Payment Management
+                </h3>
+
+                <p>
+                  Monitor student payments,
+                  payment history and
+                  transaction records.
+                </p>
+
+                <span>
+                  Manage Payments →
+                </span>
+
+              </div>
+
+            </button>
+
+          </div>
+
+        </section>
+
+
+        {/* =================================================
+            ROOM INVENTORY
+        ================================================= */}
+
+        <section className="inventory-section">
+
+
+          <div className="section-heading inventory-heading">
+
+            <div>
+
+              <span>
+                ACCOMMODATION INVENTORY
+              </span>
+
+              <h2>
+                Room Overview
+              </h2>
+
+              <p>
+                Monitor current room and bed
+                availability across all hostel
+                branches.
+              </p>
+
+            </div>
+
+
+            <button
+              type="button"
+              className="view-all-button"
+              onClick={() =>
+                navigate(
+                  "/admin/rooms"
+                )
+              }
+            >
+              View All Rooms →
+            </button>
+
+          </div>
+
+
+          <div className="inventory-table-wrapper">
+
+            <table className="inventory-table">
+
+              <thead>
+
+                <tr>
+
+                  <th>
+                    ROOM
+                  </th>
+
+                  <th>
+                    BRANCH
+                  </th>
+
+                  <th>
+                    ROOM TYPE
+                  </th>
+
+                  <th>
+                    BEDS
+                  </th>
+
+                  <th>
+                    AVAILABLE
+                  </th>
+
+                  <th>
+                    STATUS
+                  </th>
+
+                  <th>
+                    ACTION
+                  </th>
+
+                </tr>
+
+              </thead>
+
+
+              <tbody>
+
+                {/* LOADING */}
+
+                {loading && (
+
+                  <tr>
+
+                    <td
+                      colSpan="7"
+                      className="loading-row"
+                    >
+                      Loading accommodation
+                      inventory...
+                    </td>
+
+                  </tr>
+
+                )}
+
+
+                {/* EMPTY */}
+
+                {!loading &&
+                  rooms.length === 0 && (
+
+                    <tr>
+
+                      <td
+                        colSpan="7"
+                        className="empty-row"
+                      >
+                        No rooms available.
+                      </td>
+
+                    </tr>
+
+                  )}
+
+
+                {/* ROOM DATA */}
+
+                {!loading &&
+                  rooms.length > 0 &&
+                  rooms
+                    .slice(0, 5)
+                    .map(
+                      (room) => (
+
+                        <tr
+                          key={
+                            room._id
+                          }
+                        >
+
+
+                          {/* ROOM NUMBER */}
+
+                          <td>
+
+                            <div className="room-number">
+
+                              <span className="room-symbol">
+                                ▤
+                              </span>
+
+                              <strong>
+                                {
+                                  room.roomNumber ||
+                                  "—"
+                                }
+                              </strong>
+
+                            </div>
+
+                          </td>
+
+
+                          {/* BRANCH */}
+
+                          <td>
+
+                            {
+                              room.branch?.name ||
+                              "—"
+                            }
+
+                          </td>
+
+
+                          {/* ROOM TYPE */}
+
+                          <td>
+
+                            {
+                              room.roomType?.name ||
+                              "—"
+                            }
+
+                          </td>
+
+
+                          {/* BEDS */}
+
+                          <td>
+
+                            {
+                              room.totalBeds ||
+                              0
+                            }
+
+                          </td>
+
+
+                          {/* AVAILABLE */}
+
+                          <td>
+
+                            <strong>
+
+                              {
+                                room.availableBeds ||
+                                0
+                              }
+
+                            </strong>
+
+                            <span className="bed-total">
+
+                              {" / "}
+
+                              {
+                                room.totalBeds ||
+                                0
+                              }
+
+                            </span>
+
+                          </td>
+
+
+                          {/* STATUS */}
+
+                          <td>
+
+                            <span
+                              className={
+                                `status-badge ${
+                                  getStatusClass(
+                                    room.status
+                                  )
+                                }`
+                              }
+                            >
+
+                              <span className="status-dot">
+                                ●
+                              </span>
+
+                              {
+                                room.status ||
+                                "Unknown"
+                              }
+
+                            </span>
+
+                          </td>
+
+
+                          {/* ACTION */}
+
+                          <td>
+
+                            <button
+                              type="button"
+                              className="table-view-button"
+                              onClick={() =>
+                                navigate(
+                                  "/admin/rooms"
+                                )
+                              }
+                            >
+                              View
+                            </button>
+
+                          </td>
+
+                        </tr>
+
+                      )
+                    )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </section>
+
+
+        {/* =================================================
+            QUICK ACTIONS
+        ================================================= */}
+
+        <section className="quick-actions-section">
+
+          <div className="section-heading">
+
+            <span>
+              QUICK ACTIONS
+            </span>
+
+            <h2>
+              Common Tasks
+            </h2>
+
+          </div>
+
+
+          <div className="quick-actions">
+
+
+            {/* ADD ROOM */}
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  "/admin/rooms"
+                )
+              }
+            >
+
+              <span>
+                +
+              </span>
+
+              Add New Room
+
+            </button>
+
+
+            {/* ADD BRANCH */}
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  "/admin/branches"
+                )
+              }
+            >
+
+              <span>
+                +
+              </span>
+
+              Add Branch
+
+            </button>
+
+
+            {/* ADD ROOM TYPE */}
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  "/admin/room-types"
+                )
+              }
+            >
+
+              <span>
+                +
+              </span>
+
+              Add Room Type
+
+            </button>
+
+
+            {/* REVIEW BOOKINGS */}
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  "/admin/bookings"
+                )
+              }
+            >
+
+              <span>
+                →
+              </span>
+
+              Review Bookings
+
+            </button>
+
+          </div>
+
+        </section>
+
+      </main>
+
+    </div>
+
+  );
+
+};
 
 export default AdminDashboard;

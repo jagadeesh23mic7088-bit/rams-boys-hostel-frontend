@@ -1,2028 +1,2327 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
-    getBranches,
-    getRoomTypes,
-    getRooms,
-    createRoom,
-    updateRoom,
-    deleteRoom
+  getBranches,
+  getRoomTypes,
+  getRooms,
+  createRoom,
+  updateRoom,
+  deleteRoom,
 } from "../services/api";
 
+import "./AdminRooms.css";
+
+const EMPTY_FORM = {
+  branch: "",
+  roomType: "",
+  roomNumber: "",
+  totalBeds: "",
+  availableBeds: "",
+};
+
 function AdminRooms() {
+  const navigate = useNavigate();
+
+  // =====================================================
+  // STATE
+  // =====================================================
+
+  const [branches, setBranches] = useState([]);
+  const [roomTypes, setRoomTypes] = useState([]);
+  const [rooms, setRooms] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
+  const [roomTypeFilter, setRoomTypeFilter] = useState("");
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("create");
+
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [selectedRoom, setSelectedRoom] = useState(null);
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState(null);
+
+  // =====================================================
+  // LOAD ALL DATA
+  // =====================================================
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+
+      const [
+        branchResponse,
+        roomTypeResponse,
+        roomResponse,
+      ] = await Promise.all([
+        getBranches(),
+        getRoomTypes(),
+        getRooms(),
+      ]);
+
+      console.log(
+        "BRANCH RESPONSE:",
+        branchResponse
+      );
+
+      console.log(
+        "ROOM TYPES RESPONSE:",
+        roomTypeResponse
+      );
+
+      console.log(
+        "ROOMS RESPONSE:",
+        roomResponse
+      );
+
+      // =================================================
+      // BRANCHES
+      // =================================================
+
+      const branchData =
+        branchResponse?.data?.branches ||
+        branchResponse?.branches ||
+        branchResponse?.data ||
+        [];
+
+      // =================================================
+      // ROOM TYPES
+      // =================================================
+
+      const roomTypeData =
+        roomTypeResponse?.data?.roomTypes ||
+        roomTypeResponse?.roomTypes ||
+        roomTypeResponse?.data ||
+        [];
+
+      // =================================================
+      // ROOMS
+      // =================================================
+
+      const roomData =
+        roomResponse?.data?.rooms ||
+        roomResponse?.rooms ||
+        roomResponse?.data ||
+        [];
+
+      setBranches(
+        Array.isArray(branchData)
+          ? branchData
+          : []
+      );
+
+      setRoomTypes(
+        Array.isArray(roomTypeData)
+          ? roomTypeData
+          : []
+      );
+
+      setRooms(
+        Array.isArray(roomData)
+          ? roomData
+          : []
+      );
 
-    const navigate = useNavigate();
+    } catch (error) {
 
-    // =====================================================
-    // DATA STATE
-    // =====================================================
+      console.error(
+        "ERROR LOADING ROOM DATA:",
+        error
+      );
 
-    const [branches, setBranches] = useState([]);
-    const [roomTypes, setRoomTypes] = useState([]);
-    const [rooms, setRooms] = useState([]);
+      alert(
+        error?.response?.data?.message ||
+        error?.message ||
+        "Unable to load room administration data."
+      );
 
-    // =====================================================
-    // FILTER STATE
-    // =====================================================
+    } finally {
 
-    const [selectedBranch, setSelectedBranch] = useState("");
-    const [selectedRoomType, setSelectedRoomType] = useState("");
+      setLoading(false);
 
-    // =====================================================
-    // LOADING / ERROR STATE
-    // =====================================================
+    }
+  };
 
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
 
-    // =====================================================
-    // ADD ROOM MODAL STATE
-    // =====================================================
+  useEffect(() => {
+    loadData();
+  }, []);
 
-    const [showAddRoom, setShowAddRoom] = useState(false);
+  // =====================================================
+  // GET BRANCH ID FROM ROOM TYPE
+  // =====================================================
 
-    const [roomForm, setRoomForm] = useState({
-        branch: "",
-        roomType: "",
-        roomNumber: "",
-        totalBeds: "",
-        availableBeds: "",
-        status: "Available"
-    });
+  const getRoomTypeBranchId = (
+    roomType
+  ) => {
 
-    const [creatingRoom, setCreatingRoom] = useState(false);
+    return (
+      roomType?.branch?._id ||
+      roomType?.branch?.id ||
+      roomType?.branch ||
+      roomType?.branchId?._id ||
+      roomType?.branchId?.id ||
+      roomType?.branchId ||
+      ""
+    );
 
-    const [formError, setFormError] = useState("");
+  };
 
-    // =====================================================
-    // EDIT ROOM MODAL STATE
-    // =====================================================
+  // =====================================================
+  // FILTER ROOM TYPES BY SELECTED BRANCH
+  // =====================================================
 
-    const [showEditRoom, setShowEditRoom] = useState(false);
+  const filteredRoomTypes = useMemo(() => {
 
-    const [editingRoomId, setEditingRoomId] = useState("");
+    // If no branch selected,
+    // show no room types.
 
-    const [editRoomForm, setEditRoomForm] = useState({
-        roomNumber: "",
-        totalBeds: "",
-        availableBeds: "",
-        status: "Available"
-    });
+    if (!form.branch) {
+      return [];
+    }
 
-    const [updatingRoom, setUpdatingRoom] = useState(false);
+    return roomTypes.filter(
+      (roomType) => {
 
-    const [editFormError, setEditFormError] = useState("");
-
-    // =====================================================
-    // DELETE STATE
-    // =====================================================
-
-    const [deletingRoomId, setDeletingRoomId] = useState("");
-
-    // =====================================================
-    // LOAD ALL DATA
-    // =====================================================
-
-    const loadData = async () => {
-
-        try {
-
-            setLoading(true);
-
-            setError("");
-
-            const branchResponse =
-                await getBranches();
-
-            const roomTypeResponse =
-                await getRoomTypes();
-
-            const roomResponse =
-                await getRooms();
-
-            console.log(
-                "Branches:",
-                branchResponse
-            );
-
-            console.log(
-                "Room Types:",
-                roomTypeResponse
-            );
-
-            console.log(
-                "Rooms:",
-                roomResponse
-            );
-
-            setBranches(
-                branchResponse.branches || []
-            );
-
-            setRoomTypes(
-                roomTypeResponse.roomTypes || []
-            );
-
-            setRooms(
-                roomResponse.rooms || []
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Admin Rooms Error:",
-                error
-            );
-
-            setError(
-                error.message ||
-                "Unable to load room information."
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
-
-    };
-
-    // =====================================================
-    // LOAD DATA WHEN PAGE OPENS
-    // =====================================================
-
-    useEffect(() => {
-
-        loadData();
-
-    }, []);
-
-    // =====================================================
-    // FILTER ROOMS
-    // =====================================================
-
-    const filteredRooms =
-        rooms.filter(
-            (room) => {
-
-                const branchMatch =
-                    !selectedBranch ||
-                    room.branch?._id === selectedBranch;
-
-                const roomTypeMatch =
-                    !selectedRoomType ||
-                    room.roomType?._id === selectedRoomType;
-
-                return (
-                    branchMatch &&
-                    roomTypeMatch
-                );
-
-            }
-        );
-
-    // =====================================================
-    // CALCULATE STATISTICS
-    // =====================================================
-
-    const totalRooms =
-        filteredRooms.length;
-
-    const totalBeds =
-        filteredRooms.reduce(
-            (total, room) => {
-
-                return (
-                    total +
-                    Number(
-                        room.totalBeds || 0
-                    )
-                );
-
-            },
-            0
-        );
-
-    const availableBeds =
-        filteredRooms.reduce(
-            (total, room) => {
-
-                return (
-                    total +
-                    Number(
-                        room.availableBeds || 0
-                    )
-                );
-
-            },
-            0
-        );
-
-    const occupiedBeds =
-        totalBeds -
-        availableBeds;
-
-    // =====================================================
-    // HANDLE ADD ROOM FORM INPUT
-    // =====================================================
-
-    const handleRoomFormChange = (e) => {
-
-        const {
-            name,
-            value
-        } = e.target;
-
-        setRoomForm(
-            (previousForm) => ({
-                ...previousForm,
-                [name]: value
-            })
-        );
-
-    };
-
-    // =====================================================
-    // OPEN ADD ROOM MODAL
-    // =====================================================
-
-    const openAddRoomForm = () => {
-
-        setFormError("");
-
-        setRoomForm({
-            branch: "",
-            roomType: "",
-            roomNumber: "",
-            totalBeds: "",
-            availableBeds: "",
-            status: "Available"
-        });
-
-        setShowAddRoom(true);
-
-    };
-
-    // =====================================================
-    // CLOSE ADD ROOM MODAL
-    // =====================================================
-
-    const closeAddRoomForm = () => {
-
-        if (creatingRoom) {
-
-            return;
-
-        }
-
-        setShowAddRoom(false);
-
-        setFormError("");
-
-    };
-
-    // =====================================================
-    // CREATE NEW ROOM
-    // =====================================================
-
-    const handleCreateRoom = async (e) => {
-
-        e.preventDefault();
-
-        setFormError("");
-
-        // -----------------------------
-        // VALIDATION
-        // -----------------------------
-
-        if (!roomForm.branch) {
-
-            setFormError(
-                "Please select a branch."
-            );
-
-            return;
-
-        }
-
-        if (!roomForm.roomType) {
-
-            setFormError(
-                "Please select a room type."
-            );
-
-            return;
-
-        }
-
-        if (!roomForm.roomNumber.trim()) {
-
-            setFormError(
-                "Please enter a room number."
-            );
-
-            return;
-
-        }
-
-        if (!roomForm.totalBeds) {
-
-            setFormError(
-                "Please enter total beds."
-            );
-
-            return;
-
-        }
-
-        if (
-            roomForm.availableBeds === "" ||
-            roomForm.availableBeds === null
-        ) {
-
-            setFormError(
-                "Please enter available beds."
-            );
-
-            return;
-
-        }
-
-        const totalBeds =
-            Number(
-                roomForm.totalBeds
-            );
-
-        const availableBeds =
-            Number(
-                roomForm.availableBeds
-            );
-
-        if (totalBeds <= 0) {
-
-            setFormError(
-                "Total beds must be greater than 0."
-            );
-
-            return;
-
-        }
-
-        if (availableBeds < 0) {
-
-            setFormError(
-                "Available beds cannot be negative."
-            );
-
-            return;
-
-        }
-
-        if (availableBeds > totalBeds) {
-
-            setFormError(
-                "Available beds cannot be greater than total beds."
-            );
-
-            return;
-
-        }
-
-        try {
-
-            setCreatingRoom(true);
-
-            const roomData = {
-
-                branch:
-                    roomForm.branch,
-
-                roomType:
-                    roomForm.roomType,
-
-                roomNumber:
-                    roomForm.roomNumber.trim(),
-
-                totalBeds:
-                    totalBeds,
-
-                availableBeds:
-                    availableBeds,
-
-                status:
-                    roomForm.status
-
-            };
-
-            console.log(
-                "Creating Room:",
-                roomData
-            );
-
-            const response =
-                await createRoom(
-                    roomData
-                );
-
-            console.log(
-                "Room Created:",
-                response
-            );
-
-            setShowAddRoom(false);
-
-            setRoomForm({
-                branch: "",
-                roomType: "",
-                roomNumber: "",
-                totalBeds: "",
-                availableBeds: "",
-                status: "Available"
-            });
-
-            await loadData();
-
-            alert(
-                "Room created successfully!"
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Create Room Error:",
-                error
-            );
-
-            setFormError(
-                error.message ||
-                "Unable to create room."
-            );
-
-        } finally {
-
-            setCreatingRoom(false);
-
-        }
-
-    };
-
-    // =====================================================
-    // OPEN EDIT ROOM MODAL
-    // =====================================================
-
-    const openEditRoomForm = (room) => {
-
-        setEditFormError("");
-
-        setEditingRoomId(
-            room._id
-        );
-
-        setEditRoomForm({
-
-            roomNumber:
-                room.roomNumber || "",
-
-            totalBeds:
-                room.totalBeds || "",
-
-            availableBeds:
-                room.availableBeds || "",
-
-            status:
-                room.status || "Available"
-
-        });
-
-        setShowEditRoom(true);
-
-    };
-
-    // =====================================================
-    // CLOSE EDIT ROOM MODAL
-    // =====================================================
-
-    const closeEditRoomForm = () => {
-
-        if (updatingRoom) {
-
-            return;
-
-        }
-
-        setShowEditRoom(false);
-
-        setEditingRoomId("");
-
-        setEditFormError("");
-
-    };
-
-    // =====================================================
-    // HANDLE EDIT FORM INPUT
-    // =====================================================
-
-    const handleEditRoomFormChange = (e) => {
-
-        const {
-            name,
-            value
-        } = e.target;
-
-        setEditRoomForm(
-            (previousForm) => ({
-
-                ...previousForm,
-
-                [name]:
-                    value
-
-            })
-        );
-
-    };
-
-    // =====================================================
-    // UPDATE ROOM
-    // =====================================================
-
-    const handleUpdateRoom = async (e) => {
-
-        e.preventDefault();
-
-        setEditFormError("");
-
-        // -----------------------------
-        // VALIDATION
-        // -----------------------------
-
-        if (
-            !editRoomForm.roomNumber.trim()
-        ) {
-
-            setEditFormError(
-                "Please enter a room number."
-            );
-
-            return;
-
-        }
-
-        if (
-            editRoomForm.totalBeds === ""
-        ) {
-
-            setEditFormError(
-                "Please enter total beds."
-            );
-
-            return;
-
-        }
-
-        if (
-            editRoomForm.availableBeds === ""
-        ) {
-
-            setEditFormError(
-                "Please enter available beds."
-            );
-
-            return;
-
-        }
-
-        const totalBeds =
-            Number(
-                editRoomForm.totalBeds
-            );
-
-        const availableBeds =
-            Number(
-                editRoomForm.availableBeds
-            );
-
-        if (totalBeds <= 0) {
-
-            setEditFormError(
-                "Total beds must be greater than 0."
-            );
-
-            return;
-
-        }
-
-        if (availableBeds < 0) {
-
-            setEditFormError(
-                "Available beds cannot be negative."
-            );
-
-            return;
-
-        }
-
-        if (
-            availableBeds >
-            totalBeds
-        ) {
-
-            setEditFormError(
-                "Available beds cannot be greater than total beds."
-            );
-
-            return;
-
-        }
-
-        try {
-
-            setUpdatingRoom(true);
-
-            const roomData = {
-
-                roomNumber:
-                    editRoomForm.roomNumber.trim(),
-
-                totalBeds:
-                    totalBeds,
-
-                availableBeds:
-                    availableBeds,
-
-                status:
-                    editRoomForm.status
-
-            };
-
-            console.log(
-                "Updating Room:",
-                editingRoomId,
-                roomData
-            );
-
-            const response =
-                await updateRoom(
-                    editingRoomId,
-                    roomData
-                );
-
-            console.log(
-                "Room Updated:",
-                response
-            );
-
-            setShowEditRoom(false);
-
-            setEditingRoomId("");
-
-            await loadData();
-
-            alert(
-                "Room updated successfully!"
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Update Room Error:",
-                error
-            );
-
-            setEditFormError(
-                error.message ||
-                "Unable to update room."
-            );
-
-        } finally {
-
-            setUpdatingRoom(false);
-
-        }
-
-    };
-
-    // =====================================================
-    // DELETE ROOM
-    // =====================================================
-
-    const handleDeleteRoom = async (room) => {
-
-        const confirmDelete =
-            window.confirm(
-                `Are you sure you want to delete Room ${room.roomNumber}?`
-            );
-
-        if (!confirmDelete) {
-
-            return;
-
-        }
-
-        try {
-
-            setDeletingRoomId(
-                room._id
-            );
-
-            console.log(
-                "Deleting Room:",
-                room._id
-            );
-
-            const response =
-                await deleteRoom(
-                    room._id
-                );
-
-            console.log(
-                "Room Deleted:",
-                response
-            );
-
-            await loadData();
-
-            alert(
-                "Room deleted successfully!"
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Delete Room Error:",
-                error
-            );
-
-            alert(
-                error.message ||
-                "Unable to delete room."
-            );
-
-        } finally {
-
-            setDeletingRoomId("");
-
-        }
-
-    };
-
-    // =====================================================
-    // LOGOUT
-    // =====================================================
-
-    const handleLogout = () => {
-
-        localStorage.removeItem(
-            "token"
-        );
-
-        localStorage.removeItem(
-            "user"
-        );
-
-        localStorage.removeItem(
-            "isLoggedIn"
-        );
-
-        navigate(
-            "/login"
-        );
-
-    };
-
-    // =====================================================
-    // LOADING SCREEN
-    // =====================================================
-
-    if (loading) {
+        const roomTypeBranchId =
+          getRoomTypeBranchId(
+            roomType
+          );
 
         return (
-
-            <div className="admin-dashboard-page">
-
-                <div className="admin-loading">
-
-                    <div className="loading-icon">
-                        🏨
-                    </div>
-
-                    <h2>
-                        Loading Room Management
-                    </h2>
-
-                    <p>
-                        Please wait while we load
-                        hostel room information.
-                    </p>
-
-                </div>
-
-            </div>
-
+          String(
+            roomTypeBranchId
+          ) ===
+          String(
+            form.branch
+          )
         );
+
+      }
+    );
+
+  }, [
+    roomTypes,
+    form.branch,
+  ]);
+
+  // =====================================================
+  // FILTER ROOM TYPES FOR TABLE FILTER
+  // =====================================================
+
+  const filteredRoomTypesForFilter =
+    useMemo(() => {
+
+      return roomTypes;
+
+    }, [
+      roomTypes,
+    ]);
+
+  // =====================================================
+  // FILTER ROOMS
+  // =====================================================
+
+  const filteredRooms = useMemo(() => {
+
+    return rooms.filter(
+      (room) => {
+
+        const roomNumber =
+          String(
+            room.roomNumber || ""
+          ).toLowerCase();
+
+        const branchId =
+          room.branch?._id ||
+          room.branch ||
+          "";
+
+        const branchName =
+          room.branch?.name ||
+          room.branch?.branchName ||
+          "";
+
+        const roomTypeId =
+          room.roomType?._id ||
+          room.roomType ||
+          "";
+
+        const roomTypeName =
+          room.roomType?.name ||
+          "";
+
+        const searchValue =
+          search.toLowerCase();
+
+        const matchesSearch =
+          !search ||
+          roomNumber.includes(
+            searchValue
+          ) ||
+          branchName
+            .toLowerCase()
+            .includes(
+              searchValue
+            ) ||
+          roomTypeName
+            .toLowerCase()
+            .includes(
+              searchValue
+            );
+
+        const matchesBranch =
+          !branchFilter ||
+          String(
+            branchId
+          ) ===
+          String(
+            branchFilter
+          );
+
+        const matchesRoomType =
+          !roomTypeFilter ||
+          String(
+            roomTypeId
+          ) ===
+          String(
+            roomTypeFilter
+          );
+
+        return (
+          matchesSearch &&
+          matchesBranch &&
+          matchesRoomType
+        );
+
+      }
+    );
+
+  }, [
+    rooms,
+    search,
+    branchFilter,
+    roomTypeFilter,
+  ]);
+
+  // =====================================================
+  // ROOM STATISTICS
+  // =====================================================
+
+  const statistics = useMemo(() => {
+
+    let totalBeds = 0;
+    let availableBeds = 0;
+    let maintenanceRooms = 0;
+
+    filteredRooms.forEach(
+      (room) => {
+
+        totalBeds += Number(
+          room.totalBeds || 0
+        );
+
+        availableBeds += Number(
+          room.availableBeds || 0
+        );
+
+        if (
+          room.status ===
+          "Maintenance"
+        ) {
+          maintenanceRooms++;
+        }
+
+      }
+    );
+
+    return {
+
+      totalRooms:
+        filteredRooms.length,
+
+      totalBeds,
+
+      availableBeds,
+
+      occupiedBeds:
+        Math.max(
+          totalBeds -
+          availableBeds,
+          0
+        ),
+
+      maintenanceRooms,
+
+    };
+
+  }, [
+    filteredRooms,
+  ]);
+
+  // =====================================================
+  // OPEN CREATE MODAL
+  // =====================================================
+
+  const openCreateModal = () => {
+
+    setModalMode(
+      "create"
+    );
+
+    setSelectedRoom(
+      null
+    );
+
+    setForm({
+
+      ...EMPTY_FORM,
+
+      branch:
+        branchFilter ||
+        "",
+
+      roomType:
+        "",
+
+    });
+
+    setModalOpen(
+      true
+    );
+
+  };
+
+  // =====================================================
+  // OPEN EDIT MODAL
+  // =====================================================
+
+  const openEditModal = (
+    room
+  ) => {
+
+    const branchId =
+      room.branch?._id ||
+      room.branch ||
+      "";
+
+    const roomTypeId =
+      room.roomType?._id ||
+      room.roomType ||
+      "";
+
+    setModalMode(
+      "edit"
+    );
+
+    setSelectedRoom(
+      room
+    );
+
+    setForm({
+
+      branch:
+        branchId,
+
+      roomType:
+        roomTypeId,
+
+      roomNumber:
+        room.roomNumber ||
+        "",
+
+      totalBeds:
+        room.totalBeds ??
+        "",
+
+      availableBeds:
+        room.availableBeds ??
+        "",
+
+    });
+
+    setModalOpen(
+      true
+    );
+
+  };
+
+  // =====================================================
+  // CLOSE MODAL
+  // =====================================================
+
+  const closeModal = () => {
+
+    if (saving) {
+      return;
+    }
+
+    setModalOpen(
+      false
+    );
+
+    setSelectedRoom(
+      null
+    );
+
+    setForm(
+      EMPTY_FORM
+    );
+
+  };
+
+  // =====================================================
+  // HANDLE FORM CHANGE
+  // =====================================================
+
+  const handleChange = (
+    event
+  ) => {
+
+    const {
+      name,
+      value,
+    } = event.target;
+
+    // =================================================
+    // WHEN BRANCH CHANGES
+    // =================================================
+
+    if (
+      name ===
+      "branch"
+    ) {
+
+      setForm(
+        (previous) => ({
+
+          ...previous,
+
+          branch:
+            value,
+
+          // Clear previous room type
+          // because it belongs to
+          // another branch.
+
+          roomType:
+            "",
+
+          totalBeds:
+            "",
+
+          availableBeds:
+            "",
+
+        })
+      );
+
+      return;
 
     }
 
-    // =====================================================
-    // MAIN PAGE
-    // =====================================================
+    // =================================================
+    // WHEN ROOM TYPE CHANGES
+    // =================================================
 
-    return (
+    if (
+      name ===
+      "roomType"
+    ) {
 
-        <div className="admin-dashboard-page">
+      const selectedType =
+        roomTypes.find(
+          (roomType) =>
+            String(
+              roomType._id
+            ) ===
+            String(
+              value
+            )
+        );
 
-            {/* =================================================
-                ADMIN NAVBAR
-            ================================================= */}
+      if (
+        selectedType
+      ) {
 
-            <nav className="admin-navbar">
+        const capacity =
+          selectedType.capacity ||
+          selectedType.totalBeds ||
+          selectedType.beds ||
+          "";
 
-                <div className="admin-brand">
+        setForm(
+          (previous) => ({
 
-                    <h2>
-                        RAMS BOYS HOSTEL
-                    </h2>
+            ...previous,
 
-                    <span>
-                        ADMIN PANEL
-                    </span>
+            roomType:
+              value,
 
-                </div>
+            totalBeds:
+              capacity,
 
-                <div className="admin-navbar-actions">
+            availableBeds:
+              capacity,
 
-                    <button
-                        onClick={() =>
-                            navigate(
-                                "/admin/dashboard"
-                            )
-                        }
-                    >
-                        Dashboard
-                    </button>
+          })
+        );
 
-                    <button
-                        onClick={() =>
-                            navigate("/")
-                        }
-                    >
-                        View Website
-                    </button>
+      } else {
 
-                    <button
-                        onClick={
-                            handleLogout
-                        }
-                    >
-                        Logout
-                    </button>
-
-                </div>
-
-            </nav>
-
-            {/* =================================================
-                MAIN CONTENT
-            ================================================= */}
-
-            <main className="admin-main-container">
+        setForm(
+          (previous) => ({
 
-                {/* =================================================
-                    PAGE HEADER
-                ================================================= */}
+            ...previous,
 
-                <section className="admin-header">
+            roomType:
+              value,
 
-                    <p className="admin-label">
-                        ROOM MANAGEMENT
-                    </p>
+          })
+        );
 
-                    <h1>
-                        Manage Hostel Rooms
-                    </h1>
-
-                    <p>
-                        View and manage room availability,
-                        bed capacity and accommodation
-                        inventory across all RAMS Boys
-                        Hostel branches.
-                    </p>
-
-                </section>
-
-                {/* =================================================
-                    ERROR
-                ================================================= */}
-
-                {error && (
-
-                    <div className="admin-error">
-
-                        <h3>
-                            Unable to Load Rooms
-                        </h3>
-
-                        <p>
-                            {error}
-                        </p>
-
-                        <button
-                            onClick={
-                                loadData
-                            }
-                        >
-                            Try Again
-                        </button>
-
-                    </div>
-
-                )}
-
-                {/* =================================================
-                    FILTER SECTION
-                ================================================= */}
-
-                <section className="admin-filter-section">
-
-                    <div className="filter-group">
-
-                        <label>
-                            Select Branch
-                        </label>
-
-                        <select
-                            value={
-                                selectedBranch
-                            }
-                            onChange={(e) =>
-                                setSelectedBranch(
-                                    e.target.value
-                                )
-                            }
-                        >
-
-                            <option value="">
-                                All Branches
-                            </option>
+      }
 
-                            {branches.map(
-                                (branch) => (
+      return;
 
-                                    <option
-                                        key={
-                                            branch._id
-                                        }
-                                        value={
-                                            branch._id
-                                        }
-                                    >
-                                        {
-                                            branch.name
-                                        }
-                                    </option>
+    }
 
-                                )
-                            )}
+    // =================================================
+    // NORMAL FIELD
+    // =================================================
 
-                        </select>
+    setForm(
+      (previous) => ({
 
-                    </div>
+        ...previous,
 
-                    <div className="filter-group">
+        [name]:
+          value,
 
-                        <label>
-                            Select Room Type
-                        </label>
+      })
+    );
 
-                        <select
-                            value={
-                                selectedRoomType
-                            }
-                            onChange={(e) =>
-                                setSelectedRoomType(
-                                    e.target.value
-                                )
-                            }
-                        >
+  };
 
-                            <option value="">
-                                All Room Types
-                            </option>
+  // =====================================================
+  // HANDLE SUBMIT
+  // =====================================================
 
-                            {roomTypes.map(
-                                (roomType) => (
+  const handleSubmit = async (
+    event
+  ) => {
 
-                                    <option
-                                        key={
-                                            roomType._id
-                                        }
-                                        value={
-                                            roomType._id
-                                        }
-                                    >
-                                        {
-                                            roomType.name
-                                        }
-                                    </option>
+    event.preventDefault();
 
-                                )
-                            )}
+    if (!form.branch) {
 
-                        </select>
+      alert(
+        "Please select a branch."
+      );
 
-                    </div>
+      return;
 
-                    <div className="filter-actions">
+    }
 
-                        <button
-                            onClick={() => {
+    if (!form.roomType) {
 
-                                setSelectedBranch("");
+      alert(
+        "Please select a room type."
+      );
 
-                                setSelectedRoomType("");
+      return;
 
-                            }}
-                        >
-                            Clear Filters
-                        </button>
+    }
 
-                    </div>
+    if (
+      !form.roomNumber.trim()
+    ) {
 
-                </section>
+      alert(
+        "Please enter a room number."
+      );
 
-                {/* =================================================
-                    STATISTICS
-                ================================================= */}
+      return;
 
-                <section className="admin-statistics">
+    }
 
-                    <div className="admin-stat-card">
+    if (
+      !form.totalBeds ||
+      Number(
+        form.totalBeds
+      ) < 1
+    ) {
 
-                        <div className="stat-icon">
-                            🏢
-                        </div>
+      alert(
+        "Total beds must be at least 1."
+      );
 
-                        <div>
+      return;
 
-                            <p>
-                                Total Rooms
-                            </p>
+    }
 
-                            <h2>
-                                {totalRooms}
-                            </h2>
+    if (
+      form.availableBeds === "" ||
+      Number(
+        form.availableBeds
+      ) < 0
+    ) {
 
-                        </div>
+      alert(
+        "Please enter a valid available bed count."
+      );
 
-                    </div>
+      return;
 
-                    <div className="admin-stat-card">
+    }
 
-                        <div className="stat-icon">
-                            🛏️
-                        </div>
+    if (
+      Number(
+        form.availableBeds
+      ) >
+      Number(
+        form.totalBeds
+      )
+    ) {
 
-                        <div>
+      alert(
+        "Available beds cannot be greater than total beds."
+      );
 
-                            <p>
-                                Total Beds
-                            </p>
+      return;
 
-                            <h2>
-                                {totalBeds}
-                            </h2>
+    }
 
-                        </div>
+    try {
 
-                    </div>
+      setSaving(
+        true
+      );
 
-                    <div className="admin-stat-card">
+      const payload = {
 
-                        <div className="stat-icon">
-                            ✅
-                        </div>
+        branch:
+          form.branch,
 
-                        <div>
+        roomType:
+          form.roomType,
 
-                            <p>
-                                Available Beds
-                            </p>
+        roomNumber:
+          form.roomNumber.trim(),
 
-                            <h2>
-                                {availableBeds}
-                            </h2>
+        totalBeds:
+          Number(
+            form.totalBeds
+          ),
 
-                        </div>
+        availableBeds:
+          Number(
+            form.availableBeds
+          ),
 
-                    </div>
+      };
 
-                    <div className="admin-stat-card">
+      console.log(
+        "CREATE / UPDATE ROOM PAYLOAD:",
+        payload
+      );
 
-                        <div className="stat-icon">
-                            👥
-                        </div>
+      if (
+        modalMode ===
+        "create"
+      ) {
 
-                        <div>
+        await createRoom(
+          payload
+        );
 
-                            <p>
-                                Occupied Beds
-                            </p>
+      } else {
 
-                            <h2>
-                                {occupiedBeds}
-                            </h2>
+        await updateRoom(
+          selectedRoom._id,
+          payload
+        );
 
-                        </div>
+      }
 
-                    </div>
+      setModalOpen(
+        false
+      );
 
-                </section>
+      setSelectedRoom(
+        null
+      );
 
-                {/* =================================================
-                    ROOM INVENTORY
-                ================================================= */}
+      setForm(
+        EMPTY_FORM
+      );
 
-                <section className="admin-room-overview">
+      await loadData();
 
-                    <div className="section-heading">
+      alert(
 
-                        <div>
+        modalMode ===
+        "create"
 
-                            <p className="admin-label">
-                                ACCOMMODATION INVENTORY
-                            </p>
+          ? "Room created successfully."
 
-                            <h2>
-                                Room Inventory
-                            </h2>
+          : "Room updated successfully."
 
-                            <p>
-                                Monitor current room and
-                                bed availability across
-                                hostel branches.
-                            </p>
+      );
 
-                        </div>
+    } catch (
+      error
+    ) {
 
-                    </div>
+      console.error(
+        "ROOM SAVE ERROR:",
+        error
+      );
 
-                    {filteredRooms.length === 0 ? (
+      alert(
 
-                        <div className="empty-admin-state">
+        error?.response?.data?.message ||
 
-                            <div className="empty-icon">
-                                🏨
-                            </div>
+        error?.message ||
 
-                            <h3>
-                                No Rooms Found
-                            </h3>
+        "Unable to save room information."
 
-                            <p>
-                                No rooms match the selected
-                                branch or room type.
-                            </p>
+      );
 
-                        </div>
+    } finally {
 
-                    ) : (
+      setSaving(
+        false
+      );
 
-                        <div className="admin-room-table-wrapper">
+    }
 
-                            <table className="admin-room-table">
+  };
 
-                                <thead>
+  // =====================================================
+  // DELETE
+  // =====================================================
 
-                                    <tr>
+  const askDelete = (
+    room
+  ) => {
 
-                                        <th>
-                                            Room
-                                        </th>
+    setRoomToDelete(
+      room
+    );
 
-                                        <th>
-                                            Branch
-                                        </th>
+    setDeleteModalOpen(
+      true
+    );
 
-                                        <th>
-                                            Room Type
-                                        </th>
+  };
 
-                                        <th>
-                                            Category
-                                        </th>
+  const closeDeleteModal = () => {
 
-                                        <th>
-                                            Total Beds
-                                        </th>
+    setDeleteModalOpen(
+      false
+    );
 
-                                        <th>
-                                            Available
-                                        </th>
+    setRoomToDelete(
+      null
+    );
 
-                                        <th>
-                                            Monthly Rent
-                                        </th>
+  };
 
-                                        <th>
-                                            Status
-                                        </th>
+  const confirmDelete = async () => {
 
-                                        <th>
-                                            Actions
-                                        </th>
+    if (
+      !roomToDelete
+    ) {
+      return;
+    }
 
-                                    </tr>
+    try {
 
-                                </thead>
+      await deleteRoom(
+        roomToDelete._id
+      );
 
-                                <tbody>
+      closeDeleteModal();
 
-                                    {filteredRooms.map(
-                                        (room) => (
+      await loadData();
 
-                                            <tr
-                                                key={
-                                                    room._id
-                                                }
-                                            >
+      alert(
+        "Room removed successfully."
+      );
 
-                                                <td>
+    } catch (
+      error
+    ) {
 
-                                                    <strong>
-                                                        {
-                                                            room.roomNumber
-                                                        }
-                                                    </strong>
+      console.error(
+        "DELETE ROOM ERROR:",
+        error
+      );
 
-                                                </td>
+      alert(
 
-                                                <td>
-                                                    {
-                                                        room.branch?.name ||
-                                                        "N/A"
-                                                    }
-                                                </td>
+        error?.response?.data?.message ||
 
-                                                <td>
-                                                    {
-                                                        room.roomType?.name ||
-                                                        "N/A"
-                                                    }
-                                                </td>
+        error?.message ||
 
-                                                <td>
-                                                    {
-                                                        room.roomType?.category ||
-                                                        "N/A"
-                                                    }
-                                                </td>
+        "Unable to delete room."
 
-                                                <td>
-                                                    {
-                                                        room.totalBeds
-                                                    }
-                                                </td>
+      );
 
-                                                <td>
+    }
 
-                                                    <strong>
-                                                        {
-                                                            room.availableBeds
-                                                        }
-                                                    </strong>
+  };
 
-                                                </td>
+  // =====================================================
+  // CLEAR FILTERS
+  // =====================================================
 
-                                                <td>
+  const clearFilters = () => {
 
-                                                    ₹
-                                                    {
-                                                        Number(
-                                                            room.roomType?.monthlyRent ||
-                                                            0
-                                                        ).toLocaleString(
-                                                            "en-IN"
-                                                        )
-                                                    }
+    setSearch("");
 
-                                                </td>
+    setBranchFilter("");
 
-                                                <td>
+    setRoomTypeFilter("");
 
-                                                    <span
-                                                        className={
-                                                            room.status ===
-                                                            "Available"
-                                                                ? "status-available"
-                                                                : room.status ===
-                                                                  "Maintenance"
-                                                                ? "status-maintenance"
-                                                                : room.status ===
-                                                                  "Partially Occupied"
-                                                                ? "status-partial"
-                                                                : "status-full"
-                                                        }
-                                                    >
-                                                        {
-                                                            room.status ||
-                                                            "Unknown"
-                                                        }
-                                                    </span>
+  };
 
-                                                </td>
+  // =====================================================
+  // STATUS CLASS
+  // =====================================================
 
-                                                <td>
+  const getStatusClass = (
+    status
+  ) => {
 
-                                                    <div className="room-action-buttons">
+    switch (
+      status
+    ) {
 
-                                                        <button
-                                                            className="edit-room-button"
-                                                            onClick={() =>
-                                                                openEditRoomForm(
-                                                                    room
-                                                                )
-                                                            }
-                                                        >
-                                                            ✏️ Edit
-                                                        </button>
+      case "Available":
+        return "status-available";
 
-                                                        <button
-                                                            className="delete-room-button"
-                                                            onClick={() =>
-                                                                handleDeleteRoom(
-                                                                    room
-                                                                )
-                                                            }
-                                                            disabled={
-                                                                deletingRoomId ===
-                                                                room._id
-                                                            }
-                                                        >
+      case "Partially Occupied":
+        return "status-partial";
 
-                                                            {deletingRoomId ===
-                                                            room._id
-                                                                ? "Deleting..."
-                                                                : "🗑️ Delete"
-                                                            }
+      case "Fully Occupied":
+        return "status-full";
 
-                                                        </button>
+      case "Maintenance":
+        return "status-maintenance";
 
-                                                    </div>
+      default:
+        return "";
 
-                                                </td>
+    }
 
-                                            </tr>
+  };
 
-                                        )
-                                    )}
+  // =====================================================
+  // LOGOUT
+  // =====================================================
 
-                                </tbody>
+  const handleLogout = () => {
 
-                            </table>
+    localStorage.removeItem(
+      "token"
+    );
 
-                        </div>
+    localStorage.removeItem(
+      "user"
+    );
 
-                    )}
+    localStorage.removeItem(
+      "isLoggedIn"
+    );
 
-                </section>
+    navigate(
+      "/login"
+    );
 
-                {/* =================================================
-                    ROOM ADMINISTRATION
-                ================================================= */}
+  };
 
-                <section className="admin-management">
+  // =====================================================
+  // RENDER
+  // =====================================================
 
-                    <p className="admin-label">
-                        ADMINISTRATION
-                    </p>
+  return (
 
-                    <h2>
-                        Room Administration
-                    </h2>
+    <div className="admin-rooms-page">
 
-                    <p className="section-description">
-                        Manage your hostel inventory by
-                        adding, editing or deleting rooms.
-                    </p>
+      {/* ================================================= */}
+      {/* TOP BAR */}
+      {/* ================================================= */}
 
-                    <div className="management-grid">
+      <header className="admin-topbar">
 
-                        {/* ADD ROOM */}
+        <div className="brand-area">
 
-                        <div className="management-card">
+          <div className="brand-mark">
+            RB
+          </div>
 
-                            <div className="management-icon">
-                                ➕
-                            </div>
+          <div>
 
-                            <h3>
-                                Add New Room
-                            </h3>
+            <h1>
+              RAMS BOYS HOSTEL
+            </h1>
 
-                            <p>
-                                Create a new room, select its
-                                branch and room type, and define
-                                the total and available beds.
-                            </p>
+            <span>
+              Administration Portal
+            </span>
 
-                            <button
-                                onClick={
-                                    openAddRoomForm
-                                }
-                            >
-                                Add Room
-                            </button>
-
-                        </div>
-
-                        {/* EDIT ROOM */}
-
-                        <div className="management-card">
-
-                            <div className="management-icon">
-                                ✏️
-                            </div>
-
-                            <h3>
-                                Edit Existing Room
-                            </h3>
-
-                            <p>
-                                Select the Edit button from
-                                any room in the inventory table
-                                to update room information.
-                            </p>
-
-                            <button
-                                onClick={() =>
-                                    document
-                                        .querySelector(
-                                            ".admin-room-table-wrapper"
-                                        )
-                                        ?.scrollIntoView({
-                                            behavior:
-                                                "smooth"
-                                        })
-                                }
-                            >
-                                View Rooms
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-            </main>
-
-            {/* =================================================
-                ADD ROOM MODAL
-            ================================================= */}
-
-            {showAddRoom && (
-
-                <div className="room-modal-overlay">
-
-                    <div className="room-modal">
-
-                        <div className="room-modal-header">
-
-                            <div>
-
-                                <p className="admin-label">
-                                    ROOM ADMINISTRATION
-                                </p>
-
-                                <h2>
-                                    Add New Room
-                                </h2>
-
-                            </div>
-
-                            <button
-                                className="modal-close-button"
-                                onClick={
-                                    closeAddRoomForm
-                                }
-                                disabled={
-                                    creatingRoom
-                                }
-                            >
-                                ✕
-                            </button>
-
-                        </div>
-
-                        {formError && (
-
-                            <div className="admin-error">
-
-                                <p>
-                                    {formError}
-                                </p>
-
-                            </div>
-
-                        )}
-
-                        <form
-                            onSubmit={
-                                handleCreateRoom
-                            }
-                        >
-
-                            {/* BRANCH */}
-
-                            <div className="modal-form-group">
-
-                                <label>
-                                    Select Branch
-                                </label>
-
-                                <select
-                                    name="branch"
-                                    value={
-                                        roomForm.branch
-                                    }
-                                    onChange={
-                                        handleRoomFormChange
-                                    }
-                                    disabled={
-                                        creatingRoom
-                                    }
-                                >
-
-                                    <option value="">
-                                        Select Branch
-                                    </option>
-
-                                    {branches.map(
-                                        (branch) => (
-
-                                            <option
-                                                key={
-                                                    branch._id
-                                                }
-                                                value={
-                                                    branch._id
-                                                }
-                                            >
-                                                {
-                                                    branch.name
-                                                }
-                                            </option>
-
-                                        )
-                                    )}
-
-                                </select>
-
-                            </div>
-
-                            {/* ROOM TYPE */}
-
-                            <div className="modal-form-group">
-
-                                <label>
-                                    Select Room Type
-                                </label>
-
-                                <select
-                                    name="roomType"
-                                    value={
-                                        roomForm.roomType
-                                    }
-                                    onChange={
-                                        handleRoomFormChange
-                                    }
-                                    disabled={
-                                        creatingRoom
-                                    }
-                                >
-
-                                    <option value="">
-                                        Select Room Type
-                                    </option>
-
-                                    {roomTypes.map(
-                                        (roomType) => (
-
-                                            <option
-                                                key={
-                                                    roomType._id
-                                                }
-                                                value={
-                                                    roomType._id
-                                                }
-                                            >
-
-                                                {
-                                                    roomType.name
-                                                }
-
-                                                {" - ₹"}
-
-                                                {
-                                                    Number(
-                                                        roomType.monthlyRent ||
-                                                        0
-                                                    ).toLocaleString(
-                                                        "en-IN"
-                                                    )
-                                                }
-
-                                            </option>
-
-                                        )
-                                    )}
-
-                                </select>
-
-                            </div>
-
-                            {/* ROOM NUMBER */}
-
-                            <div className="modal-form-group">
-
-                                <label>
-                                    Room Number
-                                </label>
-
-                                <input
-                                    type="text"
-                                    name="roomNumber"
-                                    placeholder="Example: 101"
-                                    value={
-                                        roomForm.roomNumber
-                                    }
-                                    onChange={
-                                        handleRoomFormChange
-                                    }
-                                    disabled={
-                                        creatingRoom
-                                    }
-                                />
-
-                            </div>
-
-                            {/* BED INFORMATION */}
-
-                            <div className="modal-two-columns">
-
-                                <div className="modal-form-group">
-
-                                    <label>
-                                        Total Beds
-                                    </label>
-
-                                    <input
-                                        type="number"
-                                        name="totalBeds"
-                                        min="1"
-                                        placeholder="Example: 4"
-                                        value={
-                                            roomForm.totalBeds
-                                        }
-                                        onChange={
-                                            handleRoomFormChange
-                                        }
-                                        disabled={
-                                            creatingRoom
-                                        }
-                                    />
-
-                                </div>
-
-                                <div className="modal-form-group">
-
-                                    <label>
-                                        Available Beds
-                                    </label>
-
-                                    <input
-                                        type="number"
-                                        name="availableBeds"
-                                        min="0"
-                                        placeholder="Example: 4"
-                                        value={
-                                            roomForm.availableBeds
-                                        }
-                                        onChange={
-                                            handleRoomFormChange
-                                        }
-                                        disabled={
-                                            creatingRoom
-                                        }
-                                    />
-
-                                </div>
-
-                            </div>
-
-                            {/* STATUS */}
-
-                            <div className="modal-form-group">
-
-                                <label>
-                                    Room Status
-                                </label>
-
-                                <select
-                                    name="status"
-                                    value={
-                                        roomForm.status
-                                    }
-                                    onChange={
-                                        handleRoomFormChange
-                                    }
-                                    disabled={
-                                        creatingRoom
-                                    }
-                                >
-
-                                    <option value="Available">
-                                        Available
-                                    </option>
-
-                                    <option value="Partially Occupied">
-                                        Partially Occupied
-                                    </option>
-
-                                    <option value="Full">
-                                        Full
-                                    </option>
-
-                                    <option value="Maintenance">
-                                        Maintenance
-                                    </option>
-
-                                </select>
-
-                            </div>
-
-                            {/* ACTIONS */}
-
-                            <div className="room-modal-actions">
-
-                                <button
-                                    type="button"
-                                    className="modal-cancel-button"
-                                    onClick={
-                                        closeAddRoomForm
-                                    }
-                                    disabled={
-                                        creatingRoom
-                                    }
-                                >
-                                    Cancel
-                                </button>
-
-                                <button
-                                    type="submit"
-                                    className="modal-create-button"
-                                    disabled={
-                                        creatingRoom
-                                    }
-                                >
-
-                                    {creatingRoom
-                                        ? "Creating Room..."
-                                        : "Create Room"
-                                    }
-
-                                </button>
-
-                            </div>
-
-                        </form>
-
-                    </div>
-
-                </div>
-
-            )}
-
-            {/* =================================================
-                EDIT ROOM MODAL
-            ================================================= */}
-
-            {showEditRoom && (
-
-                <div className="room-modal-overlay">
-
-                    <div className="room-modal">
-
-                        <div className="room-modal-header">
-
-                            <div>
-
-                                <p className="admin-label">
-                                    ROOM ADMINISTRATION
-                                </p>
-
-                                <h2>
-                                    Edit Room
-                                </h2>
-
-                            </div>
-
-                            <button
-                                className="modal-close-button"
-                                onClick={
-                                    closeEditRoomForm
-                                }
-                                disabled={
-                                    updatingRoom
-                                }
-                            >
-                                ✕
-                            </button>
-
-                        </div>
-
-                        {editFormError && (
-
-                            <div className="admin-error">
-
-                                <p>
-                                    {editFormError}
-                                </p>
-
-                            </div>
-
-                        )}
-
-                        <form
-                            onSubmit={
-                                handleUpdateRoom
-                            }
-                        >
-
-                            {/* ROOM NUMBER */}
-
-                            <div className="modal-form-group">
-
-                                <label>
-                                    Room Number
-                                </label>
-
-                                <input
-                                    type="text"
-                                    name="roomNumber"
-                                    placeholder="Example: 101"
-                                    value={
-                                        editRoomForm.roomNumber
-                                    }
-                                    onChange={
-                                        handleEditRoomFormChange
-                                    }
-                                    disabled={
-                                        updatingRoom
-                                    }
-                                />
-
-                            </div>
-
-                            {/* BED INFORMATION */}
-
-                            <div className="modal-two-columns">
-
-                                <div className="modal-form-group">
-
-                                    <label>
-                                        Total Beds
-                                    </label>
-
-                                    <input
-                                        type="number"
-                                        name="totalBeds"
-                                        min="1"
-                                        value={
-                                            editRoomForm.totalBeds
-                                        }
-                                        onChange={
-                                            handleEditRoomFormChange
-                                        }
-                                        disabled={
-                                            updatingRoom
-                                        }
-                                    />
-
-                                </div>
-
-                                <div className="modal-form-group">
-
-                                    <label>
-                                        Available Beds
-                                    </label>
-
-                                    <input
-                                        type="number"
-                                        name="availableBeds"
-                                        min="0"
-                                        value={
-                                            editRoomForm.availableBeds
-                                        }
-                                        onChange={
-                                            handleEditRoomFormChange
-                                        }
-                                        disabled={
-                                            updatingRoom
-                                        }
-                                    />
-
-                                </div>
-
-                            </div>
-
-                            {/* STATUS */}
-
-                            <div className="modal-form-group">
-
-                                <label>
-                                    Room Status
-                                </label>
-
-                                <select
-                                    name="status"
-                                    value={
-                                        editRoomForm.status
-                                    }
-                                    onChange={
-                                        handleEditRoomFormChange
-                                    }
-                                    disabled={
-                                        updatingRoom
-                                    }
-                                >
-
-                                    <option value="Available">
-                                        Available
-                                    </option>
-
-                                    <option value="Partially Occupied">
-                                        Partially Occupied
-                                    </option>
-
-                                    <option value="Full">
-                                        Full
-                                    </option>
-
-                                    <option value="Maintenance">
-                                        Maintenance
-                                    </option>
-
-                                </select>
-
-                            </div>
-
-                            {/* ACTIONS */}
-
-                            <div className="room-modal-actions">
-
-                                <button
-                                    type="button"
-                                    className="modal-cancel-button"
-                                    onClick={
-                                        closeEditRoomForm
-                                    }
-                                    disabled={
-                                        updatingRoom
-                                    }
-                                >
-                                    Cancel
-                                </button>
-
-                                <button
-                                    type="submit"
-                                    className="modal-create-button"
-                                    disabled={
-                                        updatingRoom
-                                    }
-                                >
-
-                                    {updatingRoom
-                                        ? "Updating Room..."
-                                        : "Update Room"
-                                    }
-
-                                </button>
-
-                            </div>
-
-                        </form>
-
-                    </div>
-
-                </div>
-
-            )}
+          </div>
 
         </div>
 
-    );
+        <div className="topbar-actions">
+
+          <button
+            className="topbar-link"
+            onClick={() =>
+              navigate(
+                "/admin/dashboard"
+              )
+            }
+          >
+            Dashboard
+          </button>
+
+          <button
+            className="topbar-link"
+            onClick={() =>
+              navigate("/")
+            }
+          >
+            View Website
+          </button>
+
+          <button
+            className="logout-button"
+            onClick={
+              handleLogout
+            }
+          >
+            Logout
+          </button>
+
+        </div>
+
+      </header>
+
+
+      {/* ================================================= */}
+      {/* MAIN */}
+      {/* ================================================= */}
+
+      <main className="admin-content">
+
+        <div className="page-heading">
+
+          <div>
+
+            <span className="eyebrow">
+              ROOM ADMINISTRATION
+            </span>
+
+            <h2>
+              Accommodation Inventory
+            </h2>
+
+            <p>
+              Manage rooms, bed capacity and
+              availability across all RAMS Boys
+              Hostel branches.
+            </p>
+
+          </div>
+
+          <button
+            className="primary-button"
+            onClick={
+              openCreateModal
+            }
+          >
+            +
+            {" "}
+            Add New Room
+          </button>
+
+        </div>
+
+
+        {/* ================================================= */}
+        {/* STATISTICS */}
+        {/* ================================================= */}
+
+        <section className="statistics-grid">
+
+          <div className="stat-card">
+
+            <div className="stat-icon blue">
+              ▦
+            </div>
+
+            <div>
+
+              <span>
+                Total Rooms
+              </span>
+
+              <strong>
+                {
+                  loading
+                    ? "—"
+                    : statistics.totalRooms
+                }
+              </strong>
+
+              <small>
+                Active accommodation units
+              </small>
+
+            </div>
+
+          </div>
+
+
+          <div className="stat-card">
+
+            <div className="stat-icon purple">
+              ▪
+            </div>
+
+            <div>
+
+              <span>
+                Total Beds
+              </span>
+
+              <strong>
+                {
+                  loading
+                    ? "—"
+                    : statistics.totalBeds
+                }
+              </strong>
+
+              <small>
+                Across selected inventory
+              </small>
+
+            </div>
+
+          </div>
+
+
+          <div className="stat-card">
+
+            <div className="stat-icon green">
+              ✓
+            </div>
+
+            <div>
+
+              <span>
+                Available Beds
+              </span>
+
+              <strong>
+                {
+                  loading
+                    ? "—"
+                    : statistics.availableBeds
+                }
+              </strong>
+
+              <small>
+                Ready for allocation
+              </small>
+
+            </div>
+
+          </div>
+
+
+          <div className="stat-card">
+
+            <div className="stat-icon orange">
+              ◉
+            </div>
+
+            <div>
+
+              <span>
+                Occupied Beds
+              </span>
+
+              <strong>
+                {
+                  loading
+                    ? "—"
+                    : statistics.occupiedBeds
+                }
+              </strong>
+
+              <small>
+                Currently occupied
+              </small>
+
+            </div>
+
+          </div>
+
+
+          <div className="stat-card">
+
+            <div className="stat-icon red">
+              !
+            </div>
+
+            <div>
+
+              <span>
+                Maintenance
+              </span>
+
+              <strong>
+                {
+                  loading
+                    ? "—"
+                    : statistics.maintenanceRooms
+                }
+              </strong>
+
+              <small>
+                Rooms under maintenance
+              </small>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* ================================================= */}
+        {/* INVENTORY */}
+        {/* ================================================= */}
+
+        <section className="inventory-panel">
+
+          <div className="panel-heading">
+
+            <div>
+
+              <span className="eyebrow">
+                INVENTORY CONTROL
+              </span>
+
+              <h3>
+                Room Inventory
+              </h3>
+
+              <p>
+                Search and filter accommodation
+                inventory by branch and room type.
+              </p>
+
+            </div>
+
+            <button
+              className="secondary-button"
+              onClick={
+                openCreateModal
+              }
+            >
+              +
+              {" "}
+              Add Room
+            </button>
+
+          </div>
+
+
+          {/* ================================================= */}
+          {/* FILTERS */}
+          {/* ================================================= */}
+
+          <div className="filter-bar">
+
+            <div className="search-field">
+
+              <label>
+                Search
+              </label>
+
+              <div className="input-wrapper">
+
+                <span>
+                  ⌕
+                </span>
+
+                <input
+                  type="text"
+                  placeholder="Search room number..."
+                  value={
+                    search
+                  }
+                  onChange={(e) =>
+                    setSearch(
+                      e.target.value
+                    )
+                  }
+                />
+
+              </div>
+
+            </div>
+
+
+            <div className="filter-field">
+
+              <label>
+                Branch
+              </label>
+
+              <select
+                value={
+                  branchFilter
+                }
+                onChange={(e) =>
+                  setBranchFilter(
+                    e.target.value
+                  )
+                }
+              >
+
+                <option value="">
+                  All Branches
+                </option>
+
+                {branches.map(
+                  (branch) => (
+
+                    <option
+                      key={
+                        branch._id
+                      }
+                      value={
+                        branch._id
+                      }
+                    >
+
+                      {
+                        branch.name ||
+                        branch.branchName ||
+                        "Unnamed Branch"
+                      }
+
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </div>
+
+
+            <div className="filter-field">
+
+              <label>
+                Room Type
+              </label>
+
+              <select
+                value={
+                  roomTypeFilter
+                }
+                onChange={(e) =>
+                  setRoomTypeFilter(
+                    e.target.value
+                  )
+                }
+              >
+
+                <option value="">
+                  All Room Types
+                </option>
+
+                {filteredRoomTypesForFilter.map(
+                  (roomType) => (
+
+                    <option
+                      key={
+                        roomType._id
+                      }
+                      value={
+                        roomType._id
+                      }
+                    >
+
+                      {
+                        roomType.name ||
+                        "Unnamed Room Type"
+                      }
+
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </div>
+
+
+            <button
+              className="clear-button"
+              onClick={
+                clearFilters
+              }
+            >
+              Clear Filters
+            </button>
+
+          </div>
+
+
+          {/* ================================================= */}
+          {/* TABLE */}
+          {/* ================================================= */}
+
+          <div className="table-container">
+
+            {loading ? (
+
+              <div className="empty-state">
+
+                <div className="loading-spinner"></div>
+
+                <h4>
+                  Loading room inventory
+                </h4>
+
+                <p>
+                  Please wait while accommodation
+                  data is being retrieved.
+                </p>
+
+              </div>
+
+            ) : filteredRooms.length === 0 ? (
+
+              <div className="empty-state">
+
+                <div className="empty-icon">
+                  ▦
+                </div>
+
+                <h4>
+                  No rooms found
+                </h4>
+
+                <p>
+                  No accommodation units match
+                  your current search criteria.
+                </p>
+
+                <button
+                  className="primary-button"
+                  onClick={
+                    openCreateModal
+                  }
+                >
+                  + Add New Room
+                </button>
+
+              </div>
+
+            ) : (
+
+              <table className="rooms-table">
+
+                <thead>
+
+                  <tr>
+
+                    <th>
+                      ROOM
+                    </th>
+
+                    <th>
+                      BRANCH
+                    </th>
+
+                    <th>
+                      ROOM TYPE
+                    </th>
+
+                    <th>
+                      CATEGORY
+                    </th>
+
+                    <th>
+                      BEDS
+                    </th>
+
+                    <th>
+                      AVAILABILITY
+                    </th>
+
+                    <th>
+                      MONTHLY RENT
+                    </th>
+
+                    <th>
+                      STATUS
+                    </th>
+
+                    <th>
+                      ACTIONS
+                    </th>
+
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  {filteredRooms.map(
+                    (room) => {
+
+                      const totalBeds =
+                        Number(
+                          room.totalBeds ||
+                          0
+                        );
+
+                      const availableBeds =
+                        Number(
+                          room.availableBeds ||
+                          0
+                        );
+
+                      const occupied =
+                        Math.max(
+                          totalBeds -
+                          availableBeds,
+                          0
+                        );
+
+                      return (
+
+                        <tr
+                          key={
+                            room._id
+                          }
+                        >
+
+                          <td>
+
+                            <strong className="room-number">
+                              #
+                              {
+                                room.roomNumber
+                              }
+                            </strong>
+
+                          </td>
+
+
+                          <td>
+
+                            <div className="branch-name">
+
+                              <span className="location-icon">
+                                ◈
+                              </span>
+
+                              {
+                                room.branch?.name ||
+                                room.branch?.branchName ||
+                                "—"
+                              }
+
+                            </div>
+
+                          </td>
+
+
+                          <td>
+
+                            <strong>
+                              {
+                                room.roomType?.name ||
+                                "—"
+                              }
+                            </strong>
+
+                          </td>
+
+
+                          <td>
+
+                            <span className="category-text">
+
+                              {
+                                room.roomType?.category ||
+                                room.roomType?.acType ||
+                                "—"
+                              }
+
+                            </span>
+
+                          </td>
+
+
+                          <td>
+
+                            <strong>
+                              {
+                                totalBeds
+                              }
+                            </strong>
+
+                            <span className="table-subtext">
+                              beds
+                            </span>
+
+                          </td>
+
+
+                          <td>
+
+                            <strong>
+
+                              {
+                                availableBeds
+                              }
+
+                              {" / "}
+
+                              {
+                                totalBeds
+                              }
+
+                            </strong>
+
+                            <span className="table-subtext">
+
+                              {
+                                occupied
+                              }
+
+                              {" occupied"}
+
+                            </span>
+
+                          </td>
+
+
+                          <td>
+
+                            <strong className="rent-value">
+
+                              ₹
+                              {
+                                Number(
+                                  room.roomType?.monthlyRent ||
+                                  0
+                                ).toLocaleString(
+                                  "en-IN"
+                                )
+                              }
+
+                            </strong>
+
+                            <span className="table-subtext">
+                              / month
+                            </span>
+
+                          </td>
+
+
+                          <td>
+
+                            <span
+                              className={`status-badge ${getStatusClass(
+                                room.status
+                              )}`}
+                            >
+
+                              <span className="status-dot"></span>
+
+                              {
+                                room.status ||
+                                (
+                                  availableBeds ===
+                                  totalBeds
+
+                                    ? "Available"
+
+                                    : availableBeds ===
+                                      0
+
+                                    ? "Fully Occupied"
+
+                                    : "Partially Occupied"
+                                )
+                              }
+
+                            </span>
+
+                          </td>
+
+
+                          <td>
+
+                            <div className="action-buttons">
+
+                              <button
+                                className="icon-button edit"
+                                onClick={() =>
+                                  openEditModal(
+                                    room
+                                  )
+                                }
+                              >
+                                Edit
+                              </button>
+
+                              <button
+                                className="icon-button delete"
+                                onClick={() =>
+                                  askDelete(
+                                    room
+                                  )
+                                }
+                              >
+                                Delete
+                              </button>
+
+                            </div>
+
+                          </td>
+
+                        </tr>
+
+                      );
+
+                    }
+                  )}
+
+                </tbody>
+
+              </table>
+
+            )}
+
+          </div>
+
+        </section>
+
+      </main>
+
+
+      {/* ================================================= */}
+      {/* ADD / EDIT ROOM MODAL */}
+      {/* ================================================= */}
+
+      {modalOpen && (
+
+        <div className="modal-overlay">
+
+          <div className="room-modal">
+
+            <div className="modal-header">
+
+              <div>
+
+                <span className="eyebrow">
+                  ROOM MANAGEMENT
+                </span>
+
+                <h3>
+
+                  {
+                    modalMode ===
+                    "create"
+
+                      ? "Add New Room"
+
+                      : "Edit Room"
+                  }
+
+                </h3>
+
+                <p>
+
+                  {
+                    modalMode ===
+                    "create"
+
+                      ? "Select the branch first. Only room types available at that branch will be shown."
+
+                      : "Update room information and bed availability."
+                  }
+
+                </p>
+
+              </div>
+
+              <button
+                className="close-button"
+                onClick={
+                  closeModal
+                }
+              >
+                ×
+              </button>
+
+            </div>
+
+
+            <form
+              className="room-form"
+              onSubmit={
+                handleSubmit
+              }
+            >
+
+              {/* ================================================= */}
+              {/* LOCATION */}
+              {/* ================================================= */}
+
+              <div className="form-section">
+
+                <div className="form-section-title">
+                  LOCATION & ROOM TYPE
+                </div>
+
+                <div className="form-grid">
+
+                  {/* BRANCH */}
+
+                  <div className="form-group">
+
+                    <label>
+                      Branch
+                      <span>
+                        *
+                      </span>
+                    </label>
+
+                    <select
+                      name="branch"
+                      value={
+                        form.branch
+                      }
+                      onChange={
+                        handleChange
+                      }
+                    >
+
+                      <option value="">
+                        Select branch
+                      </option>
+
+                      {branches.map(
+                        (branch) => (
+
+                          <option
+                            key={
+                              branch._id
+                            }
+                            value={
+                              branch._id
+                            }
+                          >
+
+                            {
+                              branch.name ||
+                              branch.branchName ||
+                              "Unnamed Branch"
+                            }
+
+                          </option>
+
+                        )
+                      )}
+
+                    </select>
+
+                  </div>
+
+
+                  {/* ROOM TYPE */}
+
+                  <div className="form-group">
+
+                    <label>
+                      Room Type
+                      <span>
+                        *
+                      </span>
+                    </label>
+
+                    <select
+                      name="roomType"
+                      value={
+                        form.roomType
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      disabled={
+                        !form.branch
+                      }
+                    >
+
+                      <option value="">
+
+                        {
+                          !form.branch
+
+                            ? "Select branch first"
+
+                            : filteredRoomTypes.length === 0
+
+                            ? "No room types available"
+
+                            : "Select room type"
+                        }
+
+                      </option>
+
+                      {filteredRoomTypes.map(
+                        (roomType) => {
+
+                          const capacity =
+                            roomType.capacity ||
+                            roomType.totalBeds ||
+                            roomType.beds ||
+                            "—";
+
+                          const acType =
+                            roomType.acType ||
+                            roomType.category ||
+                            "";
+
+                          return (
+
+                            <option
+                              key={
+                                roomType._id
+                              }
+                              value={
+                                roomType._id
+                              }
+                            >
+
+                              {
+                                roomType.name
+                              }
+
+                              {" | "}
+
+                              {
+                                acType
+                              }
+
+                              {" | "}
+
+                              {
+                                capacity
+                              }
+
+                              {" Beds | ₹"}
+
+                              {
+                                Number(
+                                  roomType.monthlyRent ||
+                                  0
+                                ).toLocaleString(
+                                  "en-IN"
+                                )
+                              }
+
+                              {" / month"}
+
+                            </option>
+
+                          );
+
+                        }
+                      )}
+
+                    </select>
+
+                  </div>
+
+                </div>
+
+
+                {/* ================================================= */}
+                {/* SELECTED ROOM TYPE DETAILS */}
+                {/* ================================================= */}
+
+                {form.roomType && (
+
+                  <div className="selected-room-type-info">
+
+                    {(() => {
+
+                      const selectedType =
+                        roomTypes.find(
+                          (type) =>
+                            String(
+                              type._id
+                            ) ===
+                            String(
+                              form.roomType
+                            )
+                        );
+
+                      if (
+                        !selectedType
+                      ) {
+                        return null;
+                      }
+
+                      const capacity =
+                        selectedType.capacity ||
+                        selectedType.totalBeds ||
+                        selectedType.beds ||
+                        "—";
+
+                      const acType =
+                        selectedType.acType ||
+                        selectedType.category ||
+                        "—";
+
+                      return (
+
+                        <>
+
+                          <div>
+
+                            <span>
+                              ROOM TYPE
+                            </span>
+
+                            <strong>
+                              {
+                                selectedType.name
+                              }
+                            </strong>
+
+                          </div>
+
+                          <div>
+
+                            <span>
+                              CATEGORY
+                            </span>
+
+                            <strong>
+                              {
+                                acType
+                              }
+                            </strong>
+
+                          </div>
+
+                          <div>
+
+                            <span>
+                              CAPACITY
+                            </span>
+
+                            <strong>
+                              {
+                                capacity
+                              }{" "}
+                              Beds
+                            </strong>
+
+                          </div>
+
+                          <div>
+
+                            <span>
+                              MONTHLY RENT
+                            </span>
+
+                            <strong>
+                              ₹
+                              {
+                                Number(
+                                  selectedType.monthlyRent ||
+                                  0
+                                ).toLocaleString(
+                                  "en-IN"
+                                )
+                              }
+                            </strong>
+
+                          </div>
+
+                        </>
+
+                      );
+
+                    })()}
+
+                  </div>
+
+                )}
+
+              </div>
+
+
+              {/* ================================================= */}
+              {/* ROOM CAPACITY */}
+              {/* ================================================= */}
+
+              <div className="form-section">
+
+                <div className="form-section-title">
+                  ROOM CAPACITY
+                </div>
+
+                <div className="form-grid three-columns">
+
+                  <div className="form-group">
+
+                    <label>
+                      Room Number
+                      <span>
+                        *
+                      </span>
+                    </label>
+
+                    <input
+                      type="text"
+                      name="roomNumber"
+                      value={
+                        form.roomNumber
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      placeholder="Example: 101"
+                    />
+
+                  </div>
+
+
+                  <div className="form-group">
+
+                    <label>
+                      Total Beds
+                      <span>
+                        *
+                      </span>
+                    </label>
+
+                    <input
+                      type="number"
+                      name="totalBeds"
+                      min="1"
+                      value={
+                        form.totalBeds
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      placeholder="Example: 4"
+                    />
+
+                  </div>
+
+
+                  <div className="form-group">
+
+                    <label>
+                      Available Beds
+                      <span>
+                        *
+                      </span>
+                    </label>
+
+                    <input
+                      type="number"
+                      name="availableBeds"
+                      min="0"
+                      max={
+                        form.totalBeds ||
+                        undefined
+                      }
+                      value={
+                        form.availableBeds
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      placeholder="Example: 4"
+                    />
+
+                  </div>
+
+                </div>
+
+
+                <div className="form-info">
+
+                  <span>
+                    i
+                  </span>
+
+                  <p>
+                    The room capacity is automatically
+                    suggested from the selected room type.
+                    You can adjust the available beds based
+                    on current occupancy.
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              {/* ================================================= */}
+              {/* FOOTER */}
+              {/* ================================================= */}
+
+              <div className="modal-footer">
+
+                <button
+                  type="button"
+                  className="cancel-button"
+                  onClick={
+                    closeModal
+                  }
+                  disabled={
+                    saving
+                  }
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="primary-button"
+                  disabled={
+                    saving
+                  }
+                >
+
+                  {
+                    saving
+
+                      ? "Saving..."
+
+                      : modalMode ===
+                        "create"
+
+                      ? "Create Room"
+
+                      : "Save Changes"
+                  }
+
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* ================================================= */}
+      {/* DELETE MODAL */}
+      {/* ================================================= */}
+
+      {deleteModalOpen &&
+        roomToDelete && (
+
+          <div className="modal-overlay">
+
+            <div className="delete-modal">
+
+              <div className="delete-icon">
+                !
+              </div>
+
+              <h3>
+                Remove Room?
+              </h3>
+
+              <p>
+
+                Are you sure you want to remove
+                room{" "}
+
+                <strong>
+                  #
+                  {
+                    roomToDelete.roomNumber
+                  }
+                </strong>
+
+                {" "}
+                from the active inventory?
+
+              </p>
+
+              <div className="delete-actions">
+
+                <button
+                  className="cancel-button"
+                  onClick={
+                    closeDeleteModal
+                  }
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="danger-button"
+                  onClick={
+                    confirmDelete
+                  }
+                >
+                  Remove Room
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        )}
+
+    </div>
+
+  );
 
 }
 

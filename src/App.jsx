@@ -1,295 +1,238 @@
 import React from "react";
-
 import {
-    BrowserRouter,
-    Routes,
-    Route,
-    Navigate
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
 } from "react-router-dom";
 
-import "./App.css";
+// ======================================================
+// AUTHENTICATION
+// ======================================================
 
-
-// ========================================
-// PUBLIC PAGES
-// ========================================
-
-import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Rooms from "./pages/Rooms";
-import Booking from "./pages/Booking";
-import Contact from "./pages/Contact";
 
-
-// ========================================
-// PAYMENT PAGE
-// ========================================
-
-import Payment from "./pages/Payment";
-
-
-// ========================================
-// STUDENT PAGES
-// ========================================
-
-import StudentDashboard from "./pages/StudentDashboard";
-
-
-// ========================================
-// ADMIN PAGES
-// ========================================
+// ======================================================
+// ADMIN
+// ======================================================
 
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminBranches from "./pages/AdminBranches";
 import AdminRooms from "./pages/AdminRooms";
 
+// ======================================================
+// STUDENT
+// ======================================================
 
-// ========================================
-// APP COMPONENT
-// ========================================
+import StudentDashboard from "./pages/StudentDashboard";
+import Rooms from "./pages/Rooms";
+import Booking from "./pages/Booking";
+import Payment from "./pages/Payment";
+
+// ======================================================
+// APP
+// ======================================================
 
 function App() {
-
-    return (
-
-        <BrowserRouter>
-
-            <Routes>
-
-
-                {/* ========================================
-                    HOME PAGE
-                ======================================== */}
-
-                <Route
-                    path="/"
-                    element={
-                        <Home />
-                    }
-                />
-
-
-                {/* ========================================
-                    LOGIN
-                ======================================== */}
-
-                <Route
-                    path="/login"
-                    element={
-                        <Login />
-                    }
-                />
-
-
-                {/* ========================================
-                    REGISTER
-                ======================================== */}
-
-                <Route
-                    path="/register"
-                    element={
-                        <Register />
-                    }
-                />
-
-
-                {/* ========================================
-                    ROOMS
-                ======================================== */}
-
-                <Route
-                    path="/rooms"
-                    element={
-                        <Rooms />
-                    }
-                />
-
-
-                {/* ========================================
-                    BOOKING
-                ======================================== */}
-
-                <Route
-                    path="/booking"
-                    element={
-                        <Booking />
-                    }
-                />
-
-
-                {/* ========================================
-                    PAYMENT
-                ======================================== */}
-
-                <Route
-                    path="/payment"
-                    element={
-                        <Payment />
-                    }
-                />
-
-
-                {/* ========================================
-                    CONTACT
-                ======================================== */}
-
-                <Route
-                    path="/contact"
-                    element={
-                        <Contact />
-                    }
-                />
-
-
-                {/* ========================================
-                    STUDENT DASHBOARD
-                ======================================== */}
-
-                <Route
-                    path="/student/dashboard"
-                    element={
-                        <StudentDashboard />
-                    }
-                />
-
-
-                {/* ========================================
-                    STUDENT PROFILE
-                ======================================== */}
-
-                <Route
-                    path="/student/profile"
-                    element={
-
-                        <div
-                            style={{
-                                padding: "50px",
-                                textAlign: "center"
-                            }}
-                        >
-
-                            <h1>
-                                Student Profile
-                            </h1>
-
-                            <p>
-                                Profile page is under development.
-                            </p>
-
-                        </div>
-
-                    }
-                />
-
-
-                {/* ========================================
-                    STUDENT BOOKINGS
-                ======================================== */}
-
-                <Route
-                    path="/student/bookings"
-                    element={
-
-                        <div
-                            style={{
-                                padding: "50px",
-                                textAlign: "center"
-                            }}
-                        >
-
-                            <h1>
-                                My Bookings
-                            </h1>
-
-                            <p>
-                                Bookings page is under development.
-                            </p>
-
-                        </div>
-
-                    }
-                />
-
-
-                {/* ========================================
-                    STUDENT PAYMENTS
-                ======================================== */}
-
-                <Route
-                    path="/student/payments"
-                    element={
-
-                        <div
-                            style={{
-                                padding: "50px",
-                                textAlign: "center"
-                            }}
-                        >
-
-                            <h1>
-                                Payment History
-                            </h1>
-
-                            <p>
-                                Payment history page is under development.
-                            </p>
-
-                        </div>
-
-                    }
-                />
-
-
-                {/* ========================================
-                    ADMIN DASHBOARD
-                ======================================== */}
-
-                <Route
-                    path="/admin/dashboard"
-                    element={
-                        <AdminDashboard />
-                    }
-                />
-
-
-                {/* ========================================
-                    ADMIN ROOM MANAGEMENT
-                ======================================== */}
-
-                <Route
-                    path="/admin/rooms"
-                    element={
-                        <AdminRooms />
-                    }
-                />
-
-
-                {/* ========================================
-                    UNKNOWN ROUTE
-                    REDIRECT TO HOME
-                ======================================== */}
-
-                <Route
-                    path="*"
-                    element={
-                        <Navigate
-                            to="/"
-                            replace
-                        />
-                    }
-                />
-
-            </Routes>
-
-        </BrowserRouter>
-
-    );
-
+  return (
+    <BrowserRouter>
+
+      <Routes>
+
+        {/* ==================================================
+            DEFAULT
+        ================================================== */}
+
+        <Route
+          path="/"
+          element={
+            <Navigate
+              to="/login"
+              replace
+            />
+          }
+        />
+
+
+        {/* ==================================================
+            AUTHENTICATION
+        ================================================== */}
+
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+
+        {/* ==================================================
+            ADMIN
+        ================================================== */}
+
+        <Route
+          path="/admin/dashboard"
+          element={<AdminDashboard />}
+        />
+
+        <Route
+          path="/admin/branches"
+          element={<AdminBranches />}
+        />
+
+        <Route
+          path="/admin/rooms"
+          element={<AdminRooms />}
+        />
+
+        <Route
+          path="/admin/room-types"
+          element={
+            <Navigate
+              to="/admin/dashboard"
+              replace
+            />
+          }
+        />
+
+        <Route
+          path="/admin/bookings"
+          element={
+            <Navigate
+              to="/admin/dashboard"
+              replace
+            />
+          }
+        />
+
+        <Route
+          path="/admin/students"
+          element={
+            <Navigate
+              to="/admin/dashboard"
+              replace
+            />
+          }
+        />
+
+        <Route
+          path="/admin/payments"
+          element={
+            <Navigate
+              to="/admin/dashboard"
+              replace
+            />
+          }
+        />
+
+
+        {/* ==================================================
+            STUDENT DASHBOARD
+        ================================================== */}
+
+        <Route
+          path="/student/dashboard"
+          element={<StudentDashboard />}
+        />
+
+
+        {/* ==================================================
+            STUDENT ROOMS
+        ================================================== */}
+
+        <Route
+          path="/rooms"
+          element={<Rooms />}
+        />
+
+
+        {/* ==================================================
+            STUDENT BOOKING
+        ================================================== */}
+
+        <Route
+          path="/booking"
+          element={<Booking />}
+        />
+
+
+        {/* ==================================================
+            STUDENT PAYMENT
+        ================================================== */}
+
+        <Route
+          path="/payment"
+          element={<Payment />}
+        />
+
+
+        {/* ==================================================
+            STUDENT BOOKING HISTORY
+        ================================================== */}
+
+        <Route
+          path="/student/bookings"
+          element={
+            <Navigate
+              to="/student/dashboard"
+              replace
+            />
+          }
+        />
+
+
+        {/* ==================================================
+            STUDENT PAYMENTS
+        ================================================== */}
+
+        <Route
+          path="/student/payments"
+          element={
+            <Navigate
+              to="/student/dashboard"
+              replace
+            />
+          }
+        />
+
+
+        {/* ==================================================
+            STUDENT PROFILE
+        ================================================== */}
+
+        <Route
+          path="/student/profile"
+          element={
+            <Navigate
+              to="/student/dashboard"
+              replace
+            />
+          }
+        />
+
+
+        {/* ==================================================
+            UNKNOWN ROUTES
+        ================================================== */}
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/login"
+              replace
+            />
+          }
+        />
+
+      </Routes>
+
+    </BrowserRouter>
+  );
 }
-
-
-// ========================================
-// EXPORT APP
-// ========================================
 
 export default App;

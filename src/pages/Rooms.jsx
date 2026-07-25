@@ -7,6 +7,8 @@ import {
     getRooms
 } from "../services/api";
 
+import "./Rooms.css";
+
 function Rooms() {
 
     const [branches, setBranches] = useState([]);
@@ -22,9 +24,9 @@ function Rooms() {
     const navigate = useNavigate();
 
 
-    // ========================================
-    // LOAD DATA FROM BACKEND
-    // ========================================
+    // =========================================================
+    // LOAD DATA
+    // =========================================================
 
     useEffect(() => {
 
@@ -47,24 +49,22 @@ function Rooms() {
 
 
                 console.log(
-                    "Branches Response:",
+                    "Branches:",
                     branchesResponse
                 );
 
                 console.log(
-                    "Room Types Response:",
+                    "Room Types:",
                     roomTypesResponse
                 );
 
                 console.log(
-                    "Rooms Response:",
+                    "Rooms:",
                     roomsResponse
                 );
 
 
-                // ========================================
                 // BRANCHES
-                // ========================================
 
                 if (branchesResponse?.branches) {
 
@@ -75,9 +75,7 @@ function Rooms() {
                 }
 
 
-                // ========================================
                 // ROOM TYPES
-                // ========================================
 
                 if (roomTypesResponse?.roomTypes) {
 
@@ -88,9 +86,7 @@ function Rooms() {
                 }
 
 
-                // ========================================
                 // ROOMS
-                // ========================================
 
                 if (roomsResponse?.rooms) {
 
@@ -100,16 +96,16 @@ function Rooms() {
 
                 }
 
-            } catch (error) {
+            } catch (err) {
 
                 console.error(
                     "Room Loading Error:",
-                    error
+                    err
                 );
 
                 setError(
-                    error.message ||
-                    "Unable to load rooms"
+                    err.message ||
+                    "Unable to load available rooms."
                 );
 
             } finally {
@@ -126,9 +122,9 @@ function Rooms() {
     }, []);
 
 
-    // ========================================
+    // =========================================================
     // FILTER ROOMS
-    // ========================================
+    // =========================================================
 
     const filteredRooms = rooms.filter(
         (room) => {
@@ -162,34 +158,17 @@ function Rooms() {
     );
 
 
-    // ========================================
-    // BOOK SELECTED ROOM
-    // ========================================
+    // =========================================================
+    // BOOK ROOM
+    // =========================================================
 
     const handleBookRoom = (room) => {
 
         console.log(
-            "Selected Room for Booking:",
+            "Selected Room:",
             room
         );
 
-
-        /*
-        We create a complete selected-room object.
-
-        This makes sure the Booking page receives
-        the exact room selected by the student.
-
-        Example:
-
-        Room Number: 24
-        Branch: Inavolu
-        Room Type: 4-Sharing
-        Category: Non-AC
-        Monthly Rent: ₹6,500
-        Available Beds: 2
-        Total Beds: 4
-        */
 
         const selectedRoom = {
 
@@ -213,9 +192,21 @@ function Rooms() {
         };
 
 
-        // ========================================
-        // NAVIGATE TO BOOKING PAGE
-        // ========================================
+        /*
+        IMPORTANT:
+
+        This keeps your existing booking flow.
+
+        Rooms
+          ↓
+        Booking
+          ↓
+        ₹1,500 Advance Payment
+          ↓
+        QR / UPI
+          ↓
+        Confirmation
+        */
 
         navigate(
             "/booking",
@@ -229,9 +220,9 @@ function Rooms() {
     };
 
 
-    // ========================================
-    // LOADING
-    // ========================================
+    // =========================================================
+    // LOADING SCREEN
+    // =========================================================
 
     if (loading) {
 
@@ -262,9 +253,9 @@ function Rooms() {
     }
 
 
-    // ========================================
-    // ERROR
-    // ========================================
+    // =========================================================
+    // ERROR SCREEN
+    // =========================================================
 
     if (error) {
 
@@ -275,7 +266,7 @@ function Rooms() {
                 <div className="rooms-error">
 
                     <div className="error-icon">
-                        ⚠️
+                        !
                     </div>
 
                     <h2>
@@ -287,6 +278,7 @@ function Rooms() {
                     </p>
 
                     <button
+                        className="retry-button"
                         onClick={() =>
                             window.location.reload()
                         }
@@ -303,41 +295,48 @@ function Rooms() {
     }
 
 
-    // ========================================
-    // PAGE
-    // ========================================
+    // =========================================================
+    // MAIN PAGE
+    // =========================================================
 
     return (
 
         <div className="rooms-page">
 
 
-            {/* ========================================
+            {/* =================================================
                 HEADER
-            ======================================== */}
+            ================================================= */}
 
             <header className="rooms-header">
 
-                <div className="rooms-header-content">
+                <div className="rooms-header-inner">
 
-                    <div className="rooms-header-text">
 
-                        <div className="brand-badge">
-                            RAMS BOYS HOSTEL
+                    {/* BRAND */}
+
+                    <div className="rooms-brand">
+
+                        <div className="rooms-brand-logo">
+                            RB
                         </div>
 
-                        <h1>
-                            Find Your Perfect Room
-                        </h1>
+                        <div>
 
-                        <p>
-                            Explore our comfortable hostel rooms
-                            and choose the accommodation that
-                            suits you best.
-                        </p>
+                            <strong>
+                                RAMS BOYS HOSTEL
+                            </strong>
+
+                            <span>
+                                STUDENT ACCOMMODATION
+                            </span>
+
+                        </div>
 
                     </div>
 
+
+                    {/* DASHBOARD BUTTON */}
 
                     <button
                         className="dashboard-button"
@@ -348,104 +347,247 @@ function Rooms() {
                         }
                     >
 
-                        <span>
+                        <span className="button-icon">
                             ←
                         </span>
 
-                        Student Dashboard
+                        <span>
+                            Student Dashboard
+                        </span>
 
                     </button>
+
+                </div>
+
+
+                {/* =================================================
+                    HERO
+                ================================================= */}
+
+                <div className="rooms-hero">
+
+                    <div className="hero-content">
+
+                        <span className="hero-eyebrow">
+                            ✦ RAMS STUDENT ACCOMMODATION
+                        </span>
+
+                        <h1>
+                            Find Your Perfect Room
+                        </h1>
+
+                        <p>
+                            Comfortable accommodation designed
+                            to make your student life easier,
+                            safer, and more convenient.
+                        </p>
+
+                    </div>
+
+
+                    {/* HERO DECORATION */}
+
+                    <div className="hero-decoration">
+
+                        <div
+                            className="
+                                hero-circle
+                                hero-circle-one
+                            "
+                        >
+                        </div>
+
+                        <div
+                            className="
+                                hero-circle
+                                hero-circle-two
+                            "
+                        >
+                        </div>
+
+                        <div className="hero-house">
+                            🏠
+                        </div>
+
+                    </div>
 
                 </div>
 
             </header>
 
 
-            {/* ========================================
-                FILTERS
-            ======================================== */}
+            {/* =================================================
+                FILTER SECTION
+            ================================================= */}
 
-            <section className="rooms-filters">
+            <section className="filter-section">
 
-                <div className="filter-container">
+                <div className="filter-card">
 
 
-                    {/* BRANCH */}
+                    {/* FILTER HEADING */}
 
-                    <div className="filter-group">
+                    <div className="filter-heading">
 
-                        <label>
-                            Select Branch
-                        </label>
+                        <div className="filter-heading-icon">
+                            ⚙
+                        </div>
 
-                        <select
-                            value={selectedBranch}
-                            onChange={(e) =>
-                                setSelectedBranch(
-                                    e.target.value
-                                )
-                            }
-                        >
+                        <div>
 
-                            <option value="all">
-                                All Branches
-                            </option>
+                            <span>
+                                FIND YOUR ROOM
+                            </span>
 
-                            {branches.map(
-                                (branch) => (
+                            <h2>
+                                Choose Your Preferences
+                            </h2>
 
-                                    <option
-                                        key={branch._id}
-                                        value={branch._id}
-                                    >
-                                        {branch.name}
-                                    </option>
-
-                                )
-                            )}
-
-                        </select>
+                        </div>
 
                     </div>
 
 
-                    {/* ROOM TYPE */}
+                    {/* FILTERS */}
 
-                    <div className="filter-group">
+                    <div className="filters">
 
-                        <label>
-                            Room Type
-                        </label>
 
-                        <select
-                            value={selectedRoomType}
-                            onChange={(e) =>
-                                setSelectedRoomType(
-                                    e.target.value
-                                )
-                            }
-                        >
+                        {/* BRANCH */}
 
-                            <option value="all">
-                                All Room Types
-                            </option>
+                        <div className="filter-group">
 
-                            {roomTypes.map(
-                                (roomType) => (
+                            <label>
 
-                                    <option
-                                        key={roomType._id}
-                                        value={roomType._id}
-                                    >
-                                        {roomType.name}
-                                        {" - "}
-                                        {roomType.category}
-                                    </option>
+                                <span className="filter-label-icon">
+                                    🏢
+                                </span>
 
-                                )
-                            )}
+                                HOSTEL BRANCH
 
-                        </select>
+                            </label>
+
+                            <select
+                                value={
+                                    selectedBranch
+                                }
+                                onChange={(e) =>
+                                    setSelectedBranch(
+                                        e.target.value
+                                    )
+                                }
+                            >
+
+                                <option value="all">
+                                    All Branches
+                                </option>
+
+                                {branches.map(
+                                    (branch) => (
+
+                                        <option
+                                            key={
+                                                branch._id
+                                            }
+                                            value={
+                                                branch._id
+                                            }
+                                        >
+
+                                            {branch.name}
+
+                                        </option>
+
+                                    )
+                                )}
+
+                            </select>
+
+                        </div>
+
+
+                        {/* ROOM TYPE */}
+
+                        <div className="filter-group">
+
+                            <label>
+
+                                <span className="filter-label-icon">
+                                    🛏
+                                </span>
+
+                                ROOM TYPE
+
+                            </label>
+
+                            <select
+                                value={
+                                    selectedRoomType
+                                }
+                                onChange={(e) =>
+                                    setSelectedRoomType(
+                                        e.target.value
+                                    )
+                                }
+                            >
+
+                                <option value="all">
+                                    All Room Types
+                                </option>
+
+                                {roomTypes.map(
+                                    (roomType) => (
+
+                                        <option
+                                            key={
+                                                roomType._id
+                                            }
+                                            value={
+                                                roomType._id
+                                            }
+                                        >
+
+                                            {roomType.name}
+                                            {" • "}
+                                            {roomType.category}
+
+                                        </option>
+
+                                    )
+                                )}
+
+                            </select>
+
+                        </div>
+
+
+                        {/* CLEAR FILTERS */}
+
+                        {(selectedBranch !== "all" ||
+                            selectedRoomType !== "all") && (
+
+                            <button
+                                className="
+                                    clear-filter-button
+                                "
+                                onClick={() => {
+
+                                    setSelectedBranch(
+                                        "all"
+                                    );
+
+                                    setSelectedRoomType(
+                                        "all"
+                                    );
+
+                                }}
+                            >
+
+                                Clear Filters
+
+                            </button>
+
+                        )}
 
                     </div>
 
@@ -454,20 +596,20 @@ function Rooms() {
             </section>
 
 
-            {/* ========================================
+            {/* =================================================
                 MAIN CONTENT
-            ======================================== */}
+            ================================================= */}
 
             <main className="rooms-container">
 
 
-                {/* SECTION TITLE */}
+                {/* SECTION HEADER */}
 
-                <div className="rooms-section-heading">
+                <div className="rooms-section-header">
 
                     <div>
 
-                        <span className="section-label">
+                        <span className="section-eyebrow">
                             ACCOMMODATION
                         </span>
 
@@ -483,33 +625,43 @@ function Rooms() {
                     </div>
 
 
-                    <div className="room-count">
+                    {/* ROOM COUNT */}
 
-                        <strong>
-                            {filteredRooms.length}
-                        </strong>
+                    <div className="room-count-card">
 
-                        <span>
-                            {filteredRooms.length === 1
-                                ? "Room Available"
-                                : "Rooms Available"
-                            }
-                        </span>
+                        <div className="room-count-icon">
+                            🏠
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                {filteredRooms.length}
+                            </strong>
+
+                            <span>
+                                {filteredRooms.length === 1
+                                    ? "Room Available"
+                                    : "Rooms Available"
+                                }
+                            </span>
+
+                        </div>
 
                     </div>
 
                 </div>
 
 
-                {/* ========================================
+                {/* =================================================
                     NO ROOMS
-                ======================================== */}
+                ================================================= */}
 
                 {filteredRooms.length === 0 ? (
 
                     <div className="empty-rooms">
 
-                        <div className="empty-icon">
+                        <div className="empty-room-icon">
                             🏠
                         </div>
 
@@ -519,10 +671,13 @@ function Rooms() {
 
                         <p>
                             No rooms match your selected
-                            filters at the moment.
+                            preferences at the moment.
                         </p>
 
                         <button
+                            className="
+                                primary-action-button
+                            "
                             onClick={() => {
 
                                 setSelectedBranch(
@@ -535,7 +690,13 @@ function Rooms() {
 
                             }}
                         >
+
                             Clear Filters
+
+                            <span>
+                                →
+                            </span>
+
                         </button>
 
                     </div>
@@ -543,9 +704,9 @@ function Rooms() {
                 ) : (
 
 
-                    /* ========================================
+                    /* =================================================
                         ROOM GRID
-                    ======================================== */
+                    ================================================= */
 
                     <div className="rooms-grid">
 
@@ -554,11 +715,13 @@ function Rooms() {
 
 
                                 const availableBeds =
-                                    room.availableBeds || 0;
+                                    room.availableBeds ||
+                                    0;
 
 
                                 const totalBeds =
-                                    room.totalBeds || 0;
+                                    room.totalBeds ||
+                                    0;
 
 
                                 const availabilityPercentage =
@@ -574,40 +737,81 @@ function Rooms() {
                                     availableBeds > 0;
 
 
+                                const isLimited =
+                                    availableBeds > 0 &&
+                                    availableBeds <= 1;
+
+
+                                const roomCategory =
+                                    room.roomType?.category ||
+                                    "STANDARD";
+
+
+                                const roomName =
+                                    room.roomType?.name ||
+                                    "Room";
+
+
+                                const branchName =
+                                    room.branch?.name ||
+                                    "Not Available";
+
+
+                                const monthlyRent =
+                                    room.roomType?.monthlyRent ||
+                                    0;
+
+
                                 return (
 
                                     <div
                                         className="room-card"
-                                        key={room._id}
+                                        key={
+                                            room._id
+                                        }
                                     >
 
 
-                                        {/* CARD HEADER */}
+                                        {/* CARD TOP */}
 
-                                        <div className="room-card-header">
+                                        <div className="room-card-top">
 
-                                            <div className="room-title">
 
-                                                <span className="room-label">
+                                            {/* ROOM NUMBER */}
+
+                                            <div className="room-number">
+
+                                                <span>
                                                     ROOM NUMBER
                                                 </span>
 
-                                                <h3>
-                                                    {room.roomNumber}
-                                                </h3>
+                                                <strong>
+                                                    {
+                                                        room.roomNumber
+                                                    }
+                                                </strong>
 
                                             </div>
 
 
+                                            {/* STATUS */}
+
                                             <span
-                                                className={
-                                                    isAvailable
-                                                        ? "status available"
-                                                        : "status full"
-                                                }
+                                                className={`
+                                                    room-status
+                                                    ${
+                                                        isAvailable
+                                                            ? "available"
+                                                            : "full"
+                                                    }
+                                                `}
                                             >
 
-                                                <span className="status-dot">
+                                                <span
+                                                    className="
+                                                        status-dot
+                                                    "
+                                                >
                                                 </span>
 
                                                 {isAvailable
@@ -620,81 +824,39 @@ function Rooms() {
                                         </div>
 
 
-                                        {/* ROOM TYPE BADGE */}
+                                        {/* =================================================
+                                            ROOM CATEGORY
+                                        ================================================= */}
 
-                                        <div className="room-type-badge">
+                                        <div className="room-category">
 
-                                            <span>
-                                                {room.roomType?.category ||
-                                                    "STANDARD"
+
+                                            <div className="category-icon">
+
+                                                {roomCategory
+                                                    .toLowerCase()
+                                                    .includes("ac")
+                                                    ? "❄"
+                                                    : "☀"
                                                 }
-                                            </span>
-
-                                            <strong>
-                                                {room.roomType?.name ||
-                                                    "Room"
-                                                }
-                                            </strong>
-
-                                        </div>
-
-
-                                        {/* DETAILS */}
-
-                                        <div className="room-details">
-
-
-                                            <div className="room-detail">
-
-                                                <span>
-                                                    BRANCH
-                                                </span>
-
-                                                <strong>
-                                                    {room.branch?.name ||
-                                                        "Not Available"
-                                                    }
-                                                </strong>
 
                                             </div>
 
 
-                                            <div className="room-detail">
+                                            <div>
 
                                                 <span>
-                                                    ROOM TYPE
+                                                    ACCOMMODATION TYPE
                                                 </span>
 
                                                 <strong>
-                                                    {room.roomType?.name ||
-                                                        "Not Available"
-                                                    }
-                                                </strong>
 
-                                            </div>
+                                                    {roomCategory}
 
+                                                    {" • "}
 
-                                            <div className="room-detail">
+                                                    {roomName}
 
-                                                <span>
-                                                    TOTAL BEDS
-                                                </span>
-
-                                                <strong>
-                                                    {totalBeds}
-                                                </strong>
-
-                                            </div>
-
-
-                                            <div className="room-detail">
-
-                                                <span>
-                                                    AVAILABLE
-                                                </span>
-
-                                                <strong className="available-number">
-                                                    {availableBeds}
                                                 </strong>
 
                                             </div>
@@ -702,7 +864,96 @@ function Rooms() {
                                         </div>
 
 
-                                        {/* RENT */}
+                                        {/* =================================================
+                                            ROOM DETAILS
+                                        ================================================= */}
+
+                                        <div className="room-details-grid">
+
+
+                                            {/* BRANCH */}
+
+                                            <div className="room-detail-item">
+
+                                                <span>
+                                                    🏢 BRANCH
+                                                </span>
+
+                                                <strong>
+                                                    {
+                                                        branchName
+                                                    }
+                                                </strong>
+
+                                            </div>
+
+
+                                            {/* CAPACITY */}
+
+                                            <div className="room-detail-item">
+
+                                                <span>
+                                                    👥 CAPACITY
+                                                </span>
+
+                                                <strong>
+                                                    {
+                                                        totalBeds
+                                                    } Beds
+                                                </strong>
+
+                                            </div>
+
+
+                                            {/* AVAILABLE */}
+
+                                            <div className="room-detail-item">
+
+                                                <span>
+                                                    🛏 AVAILABLE
+                                                </span>
+
+                                                <strong
+                                                    className="
+                                                        available-beds
+                                                    "
+                                                >
+                                                    {
+                                                        availableBeds
+                                                    } Beds
+                                                </strong>
+
+                                            </div>
+
+
+                                            {/* ROOM TYPE */}
+
+                                            <div className="room-detail-item">
+
+                                                <span>
+                                                    🏠 ROOM TYPE
+                                                </span>
+
+                                                <strong>
+                                                    {
+                                                        roomName
+                                                    }
+                                                </strong>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        {/* DIVIDER */}
+
+                                        <div className="room-divider">
+                                        </div>
+
+
+                                        {/* =================================================
+                                            RENT
+                                        ================================================= */}
 
                                         <div className="rent-section">
 
@@ -712,29 +963,28 @@ function Rooms() {
                                                     MONTHLY RENT
                                                 </span>
 
-                                                <h4>
+                                                <strong>
                                                     ₹
-                                                    {(
-                                                        room.roomType?.monthlyRent ||
-                                                        0
-                                                    ).toLocaleString(
+                                                    {monthlyRent.toLocaleString(
                                                         "en-IN"
                                                     )}
-
-                                                </h4>
+                                                </strong>
 
                                             </div>
 
                                             <span className="rent-period">
-                                                per month
+                                                / month
                                             </span>
 
                                         </div>
 
 
-                                        {/* BED AVAILABILITY */}
+                                        {/* =================================================
+                                            AVAILABILITY
+                                        ================================================= */}
 
                                         <div className="availability-section">
+
 
                                             <div className="availability-header">
 
@@ -743,11 +993,15 @@ function Rooms() {
                                                 </span>
 
                                                 <strong>
-                                                    {availableBeds}
+                                                    {
+                                                        availableBeds
+                                                    }
                                                     {" "}
                                                     of
                                                     {" "}
-                                                    {totalBeds}
+                                                    {
+                                                        totalBeds
+                                                    }
                                                 </strong>
 
                                             </div>
@@ -756,13 +1010,14 @@ function Rooms() {
                                             <div className="availability-bar">
 
                                                 <div
-                                                    className={
-                                                        availabilityPercentage > 50
-                                                            ? "availability-fill high"
-                                                            : availabilityPercentage > 0
-                                                                ? "availability-fill medium"
-                                                                : "availability-fill low"
-                                                    }
+                                                    className={`
+                                                        availability-fill
+                                                        ${
+                                                            availabilityPercentage <= 25
+                                                                ? "low"
+                                                                : ""
+                                                        }
+                                                    `}
                                                     style={{
                                                         width:
                                                             `${availabilityPercentage}%`
@@ -772,13 +1027,31 @@ function Rooms() {
 
                                             </div>
 
+
+                                            {isLimited && (
+
+                                                <span className="limited-text">
+
+                                                    Only {
+                                                        availableBeds
+                                                    } bed left.
+                                                    Book soon!
+
+                                                </span>
+
+                                            )}
+
                                         </div>
 
 
-                                        {/* BOOK BUTTON */}
+                                        {/* =================================================
+                                            BOOK BUTTON
+                                        ================================================= */}
 
                                         <button
-                                            className="book-room-button"
+                                            className="
+                                                book-room-button
+                                            "
                                             disabled={
                                                 !isAvailable
                                             }
@@ -789,15 +1062,21 @@ function Rooms() {
                                             }
                                         >
 
+                                            <span className="book-icon">
+                                                ✓
+                                            </span>
+
                                             {isAvailable
                                                 ? "Book This Room"
                                                 : "Currently Full"
                                             }
 
                                             {isAvailable && (
-                                                <span>
+
+                                                <span className="book-arrow">
                                                     →
                                                 </span>
+
                                             )}
 
                                         </button>
@@ -816,15 +1095,75 @@ function Rooms() {
             </main>
 
 
-            {/* ========================================
-                FOOTER NOTE
-            ======================================== */}
+            {/* =================================================
+                INFORMATION SECTION
+            ================================================= */}
+
+            <section className="rooms-info-section">
+
+                <div className="rooms-info-card">
+
+                    <div className="info-card-icon">
+                        ℹ
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Real-Time Room Availability
+                        </strong>
+
+                        <p>
+                            Room availability is updated
+                            in real time based on hostel
+                            management records. Select
+                            an available room to begin
+                            your reservation.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            {/* =================================================
+                FOOTER
+            ================================================= */}
 
             <footer className="rooms-footer">
 
+
+                <div className="footer-brand">
+
+                    <div className="footer-logo">
+                        RB
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            RAMS BOYS HOSTEL
+                        </strong>
+
+                        <span>
+                            Comfortable. Secure. Convenient.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
                 <p>
-                    Room availability is updated in real time
-                    based on hostel management records.
+                    © 2026 RAMS BOYS HOSTEL.
+                    All rights reserved.
+                </p>
+
+
+                <p>
+                    Student Portal
                 </p>
 
             </footer>

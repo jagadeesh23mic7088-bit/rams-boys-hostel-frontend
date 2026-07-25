@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import paymentQR from "../assets/images/payment-qr.jpeg";
 import "./Payment.css";
@@ -12,6 +12,7 @@ import {
 
 function Payment() {
 
+    const location = useLocation();
     const navigate = useNavigate();
 
     const [booking, setBooking] = useState(null);
@@ -43,7 +44,7 @@ function Payment() {
 
 
     // =====================================================
-    // LOAD BOOKING + BRANCH + ROOM TYPE
+    // LOAD PAYMENT DATA
     // =====================================================
 
     useEffect(() => {
@@ -57,37 +58,47 @@ function Payment() {
 
 
                 // =================================================
-                // GET SAVED BOOKING
+                // FIRST: GET BOOKING FROM REACT ROUTER STATE
                 // =================================================
 
-                const savedBooking =
-                    localStorage.getItem(
-                        "pendingBooking"
-                    );
+                let savedBooking =
+                    location.state?.booking;
 
+
+                // =================================================
+                // SECOND: GET BOOKING FROM LOCAL STORAGE
+                // =================================================
 
                 if (!savedBooking) {
 
-                    setError(
-                        "We could not find your booking information."
-                    );
+                    const localBooking =
+                        localStorage.getItem(
+                            "pendingBooking"
+                        );
 
-                    return;
+                    if (localBooking) {
+
+                        savedBooking =
+                            JSON.parse(
+                                localBooking
+                            );
+
+                    }
 
                 }
 
 
-                const parsedBooking =
-                    JSON.parse(
-                        savedBooking
-                    );
+                // =================================================
+                // CHECK BOOKING
+                // =================================================
 
-
-                if (!parsedBooking) {
+                if (!savedBooking) {
 
                     setError(
-                        "Invalid booking information."
+                        "We could not find your booking information. Please return to the booking page and try again."
                     );
+
+                    setLoading(false);
 
                     return;
 
@@ -95,22 +106,22 @@ function Payment() {
 
 
                 console.log(
-                    "Saved Booking:",
-                    parsedBooking
+                    "Payment Booking:",
+                    savedBooking
                 );
 
 
                 // =================================================
-                // SAVE BOOKING
+                // SAVE BOOKING TO STATE
                 // =================================================
 
                 setBooking(
-                    parsedBooking
+                    savedBooking
                 );
 
 
                 // =================================================
-                // LOAD BRANCHES AND ROOM TYPES
+                // LOAD BRANCHES + ROOM TYPES
                 // =================================================
 
                 const [
@@ -125,24 +136,11 @@ function Payment() {
                 ]);
 
 
-                console.log(
-                    "Payment Branch Response:",
-                    branchResponse
-                );
-
-
-                console.log(
-                    "Payment Room Type Response:",
-                    roomTypeResponse
-                );
-
-
                 // =================================================
-                // EXTRACT BRANCHES
+                // BRANCH LIST
                 // =================================================
 
                 let branchList = [];
-
 
                 if (
                     Array.isArray(
@@ -175,11 +173,10 @@ function Payment() {
 
 
                 // =================================================
-                // EXTRACT ROOM TYPES
+                // ROOM TYPE LIST
                 // =================================================
 
                 let roomTypeList = [];
-
 
                 if (
                     Array.isArray(
@@ -215,25 +212,22 @@ function Payment() {
                     branchList
                 );
 
-
                 setRoomTypes(
                     roomTypeList
                 );
 
 
-            } catch (error) {
+            } catch (err) {
 
                 console.error(
                     "Payment page error:",
-                    error
+                    err
                 );
-
 
                 setError(
-                    error.message ||
+                    err.message ||
                     "Unable to load your booking information."
                 );
-
 
             } finally {
 
@@ -246,7 +240,9 @@ function Payment() {
 
         loadPaymentData();
 
-    }, []);
+    }, [
+        location.state
+    ]);
 
 
     // =====================================================
@@ -256,14 +252,20 @@ function Payment() {
     const goBackToBooking = () => {
 
         navigate(
-            "/booking"
+            "/booking",
+            {
+                state: {
+                    room:
+                        booking?.room
+                }
+            }
         );
 
     };
 
 
     // =====================================================
-    // OPEN UPI APP
+    // OPEN UPI
     // =====================================================
 
     const handleUPIPayment = () => {
@@ -309,7 +311,7 @@ function Payment() {
 
 
     // =====================================================
-    // LOADING SCREEN
+    // LOADING
     // =====================================================
 
     if (loading) {
@@ -342,7 +344,7 @@ function Payment() {
 
 
     // =====================================================
-    // ERROR SCREEN
+    // ERROR
     // =====================================================
 
     if (error || !booking) {
@@ -387,16 +389,24 @@ function Payment() {
 
 
     // =====================================================
-    // FIND ACTUAL BRANCH
+    // BRANCH ID
     // =====================================================
 
     const bookingBranchId =
+
         typeof booking.branch === "object"
+
             ? booking.branch?._id
+
             : booking.branch;
 
 
+    // =====================================================
+    // SELECTED BRANCH
+    // =====================================================
+
     const selectedBranch =
+
         branches.find(
             (branch) =>
                 String(branch._id) ===
@@ -405,16 +415,24 @@ function Payment() {
 
 
     // =====================================================
-    // FIND ACTUAL ROOM TYPE
+    // ROOM TYPE ID
     // =====================================================
 
     const bookingRoomTypeId =
+
         typeof booking.roomType === "object"
+
             ? booking.roomType?._id
+
             : booking.roomType;
 
 
+    // =====================================================
+    // SELECTED ROOM TYPE
+    // =====================================================
+
     const selectedRoomType =
+
         roomTypes.find(
             (roomType) =>
                 String(roomType._id) ===
@@ -423,32 +441,65 @@ function Payment() {
 
 
     // =====================================================
-    // BOOKING DETAILS
+    // ROOM
+    // =====================================================
+
+    const selectedRoom =
+
+        typeof booking.room === "object"
+
+            ? booking.room
+
+            : null;
+
+
+    // =====================================================
+    // DETAILS
     // =====================================================
 
     const branchName =
+
         selectedBranch?.name ||
+
         booking.branch?.name ||
+
         "Selected Branch";
 
 
     const roomName =
+
         selectedRoomType?.name ||
+
         booking.roomType?.name ||
+
         "Selected Room";
 
 
     const roomCategory =
+
         selectedRoomType?.category ||
+
         booking.roomType?.category ||
+
         "";
 
 
     const monthlyRent =
+
         selectedRoomType?.monthlyRent ||
+
         booking.roomType?.monthlyRent ||
+
         booking.monthlyRent ||
+
         0;
+
+
+    const roomNumber =
+
+        selectedRoom?.roomNumber ||
+
+        "Selected Room";
 
 
     // =====================================================
@@ -469,7 +520,7 @@ function Payment() {
                 <div className="payment-header">
 
                     <div className="payment-logo">
-                        🏠
+                        RB
                     </div>
 
                     <h1>
@@ -510,7 +561,18 @@ function Payment() {
                     <div className="summary-grid">
 
 
-                        {/* HOSTEL BRANCH */}
+                        <div className="summary-item">
+
+                            <span>
+                                Room Number
+                            </span>
+
+                            <strong>
+                                {roomNumber}
+                            </strong>
+
+                        </div>
+
 
                         <div className="summary-item">
 
@@ -525,8 +587,6 @@ function Payment() {
                         </div>
 
 
-                        {/* ROOM TYPE */}
-
                         <div className="summary-item">
 
                             <span>
@@ -538,15 +598,13 @@ function Payment() {
                                 {roomName}
 
                                 {roomCategory &&
-                                    ` ${roomCategory}`
+                                    ` • ${roomCategory}`
                                 }
 
                             </strong>
 
                         </div>
 
-
-                        {/* NUMBER OF BEDS */}
 
                         <div className="summary-item">
 
@@ -555,13 +613,14 @@ function Payment() {
                             </span>
 
                             <strong>
-                                {booking.numberOfBeds || 1}
+                                {
+                                    booking.numberOfBeds ||
+                                    1
+                                }
                             </strong>
 
                         </div>
 
-
-                        {/* MONTHLY RENT */}
 
                         <div className="summary-item">
 
@@ -583,8 +642,6 @@ function Payment() {
                         </div>
 
 
-                        {/* MOVE-IN DATE */}
-
                         <div className="summary-item">
 
                             <span>
@@ -594,20 +651,21 @@ function Payment() {
                             <strong>
 
                                 {booking.moveInDate
+
                                     ? new Date(
                                         booking.moveInDate
                                     ).toLocaleDateString(
                                         "en-IN"
                                     )
+
                                     : "Not specified"
+
                                 }
 
                             </strong>
 
                         </div>
 
-
-                        {/* BOOKING STATUS */}
 
                         <div className="summary-item">
 
@@ -637,8 +695,6 @@ function Payment() {
                 <div className="payment-card">
 
 
-                    {/* PAYMENT HEADER */}
-
                     <div className="payment-card-header">
 
                         <span className="payment-icon">
@@ -660,9 +716,7 @@ function Payment() {
                     </div>
 
 
-                    {/* =================================================
-                        AMOUNT
-                    ================================================= */}
+                    {/* AMOUNT */}
 
                     <div className="payment-amount">
 
@@ -677,19 +731,17 @@ function Payment() {
                     </div>
 
 
-                    {/* =================================================
-                        DIRECT UPI PAYMENT
-                    ================================================= */}
+                    {/* UPI */}
 
                     <div className="upi-app-payment-section">
 
                         <h3>
-                            💳 Pay Directly Using UPI
+                            Pay Directly Using UPI
                         </h3>
 
                         <p>
-                            Tap the button below to open
-                            your available UPI payment app.
+                            Tap below to open your
+                            available UPI payment application.
                         </p>
 
 
@@ -701,9 +753,7 @@ function Payment() {
                             }
                         >
 
-                            📱
-                            {" "}
-                            Pay ₹1,500 with UPI App
+                            📱 Pay ₹1,500 with UPI App
 
                         </button>
 
@@ -728,20 +778,18 @@ function Payment() {
                     </div>
 
 
-                    {/* =================================================
-                        QR PAYMENT
-                    ================================================= */}
+                    {/* QR */}
 
                     <div className="qr-section">
 
                         <div className="qr-payment-box">
 
                             <h3>
-                                📱 Scan & Pay
+                                Scan & Pay
                             </h3>
 
                             <p>
-                                Scan the QR code using any UPI application
+                                Scan the QR code using any UPI application.
                             </p>
 
 
@@ -783,26 +831,17 @@ function Payment() {
 
                             </div>
 
-
-                            <p className="qr-note">
-
-                                Scan to pay with any UPI app
-
-                            </p>
-
                         </div>
 
                     </div>
 
 
-                    {/* =================================================
-                        PAYMENT INSTRUCTIONS
-                    ================================================= */}
+                    {/* INSTRUCTIONS */}
 
                     <div className="payment-instructions">
 
                         <h3>
-                            How to Pay
+                            How to Complete Payment
                         </h3>
 
 
@@ -813,15 +852,7 @@ function Payment() {
                             </span>
 
                             <p>
-
-                                Tap
-                                {" "}
-                                <strong>
-                                    Pay ₹1,500 with UPI App
-                                </strong>
-                                {" "}
-                                to open your UPI application.
-
+                                Open your preferred UPI application.
                             </p>
 
                         </div>
@@ -834,11 +865,11 @@ function Payment() {
                             </span>
 
                             <p>
-
-                                If the UPI app does not open,
-                                scan the RAMS BOYS HOSTEL
-                                UPI QR code.
-
+                                Pay exactly
+                                <strong>
+                                    {" ₹1,500 "}
+                                </strong>
+                                as the booking advance.
                             </p>
 
                         </div>
@@ -851,13 +882,7 @@ function Payment() {
                             </span>
 
                             <p>
-
-                                Pay exactly
-                                <strong>
-                                    {" ₹1,500 "}
-                                </strong>
-                                as the booking advance.
-
+                                Save your UPI transaction ID.
                             </p>
 
                         </div>
@@ -870,11 +895,7 @@ function Payment() {
                             </span>
 
                             <p>
-
-                                After completing payment,
-                                keep your UPI transaction ID
-                                for verification.
-
+                                Click "I Have Paid" after completing payment.
                             </p>
 
                         </div>
@@ -882,9 +903,7 @@ function Payment() {
                     </div>
 
 
-                    {/* =================================================
-                        PAYMENT CONFIRMATION MESSAGE
-                    ================================================= */}
+                    {/* CONFIRMATION */}
 
                     {paymentClicked && (
 
@@ -895,12 +914,9 @@ function Payment() {
                             </span>
 
                             <p>
-
-                                Your payment details will be
-                                verified by RAMS BOYS HOSTEL.
-                                Please keep your UPI transaction
-                                ID for verification.
-
+                                Your payment details will be verified
+                                by RAMS BOYS HOSTEL. Please keep your
+                                UPI transaction ID for verification.
                             </p>
 
                         </div>
@@ -908,9 +924,7 @@ function Payment() {
                     )}
 
 
-                    {/* =================================================
-                        I HAVE PAID BUTTON
-                    ================================================= */}
+                    {/* PAID */}
 
                     <button
                         type="button"
@@ -920,16 +934,12 @@ function Payment() {
                         }
                     >
 
-                        💳
-                        {" "}
-                        I Have Paid ₹1,500
+                        ✓ I Have Paid ₹1,500
 
                     </button>
 
 
-                    {/* =================================================
-                        BACK BUTTON
-                    ================================================= */}
+                    {/* BACK */}
 
                     <button
                         type="button"
@@ -946,19 +956,15 @@ function Payment() {
                 </div>
 
 
-                {/* =================================================
-                    SECURITY NOTICE
-                ================================================= */}
+                {/* SECURITY */}
 
                 <div className="payment-security">
 
                     🔒
 
                     <span>
-
                         Your booking information is securely
                         processed by RAMS BOYS HOSTEL.
-
                     </span>
 
                 </div>
